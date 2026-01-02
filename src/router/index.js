@@ -38,6 +38,26 @@ export const constantRoutes = [
     ]
   },
   {
+    path: '/portal',
+    component: () => import('@/views/portal/index'),
+    hidden: true
+  },
+  {
+    path: '/portal/profile',
+    component: () => import('@/views/portal/profile'),
+    hidden: true
+  },
+  {
+    path: '/system/course/index/:id(\\d+)',
+    component: () => import('@/views/edu/course/detail'),
+    hidden: true
+  },
+  {
+    path: '/system/course/learn/:id(\\d+)',
+    component: () => import('@/views/edu/course/learn'),
+    hidden: true
+  },
+  {
     path: '/login',
     component: () => import('@/views/login'),
     hidden: true
@@ -60,7 +80,7 @@ export const constantRoutes = [
   {
     path: '',
     component: Layout,
-    redirect: '/index',
+    redirect: '/portal',
     children: [
       {
         path: '/index',
@@ -83,25 +103,74 @@ export const constantRoutes = [
         meta: { title: '个人中心', icon: 'user' }
       }
     ]
-  }
-]
-
-// 动态路由，基于用户权限动态去加载
-export const dynamicRoutes = [
+  },
   {
-    path: '/system/user-auth',
+    path: '/user-manage',
     component: Layout,
     hidden: true,
     permissions: ['system:user:edit'],
     children: [
       {
-        path: 'role/:userId(\\d+)',
+        path: 'auth/role/:userId(\\d+)',
         component: () => import('@/views/system/user/authRole'),
         name: 'AuthRole',
-        meta: { title: '分配角色', activeMenu: '/system/user' }
+        meta: { title: '分配角色', activeMenu: '/sys-user' }
       }
     ]
   },
+  {
+    path: '/edu/my-class',
+    component: () => import('@/views/edu/class/myClass'),
+    hidden: true
+  },
+  {
+    path: '/edu/course/learn/:id(\\d+)',
+    component: () => import('@/views/edu/course/learn'),
+    hidden: true
+  },
+  {
+    path: '/edu/class/view/:id(\\d+)',
+    component: () => import('@/views/edu/class/studentDetail'),
+    hidden: true
+  },
+  {
+    path: '/edu/class',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: 'detail/:id(\\d+)',
+        component: () => import('@/views/edu/class/detail'),
+        name: 'ClassDetail',
+        meta: { title: '班级详情', activeMenu: '/edu/class' }
+      }
+    ]
+  },
+]
+
+// 动态路由，基于用户权限动态去加载
+export const dynamicRoutes = [
+  {
+    path: '/system/course',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: 'index/:id(\\d+)',
+        component: () => import('@/views/edu/course/detail'),
+        name: 'CourseDetail',
+        meta: { title: '课程详情', activeMenu: '/system/course' }
+      },
+      {
+        path: 'learn/:id(\\d+)',
+        component: () => import('@/views/edu/course/learn'),
+        name: 'CourseLearn',
+        meta: { title: '课程学习', activeMenu: '/system/course' }
+      }
+    ]
+  },
+
+
   {
     path: '/system/role-auth',
     component: Layout,

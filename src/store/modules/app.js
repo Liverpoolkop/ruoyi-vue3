@@ -10,9 +10,20 @@ const useAppStore = defineStore(
         hide: false
       },
       device: 'desktop',
-      size: Cookies.get('size') || 'default'
+      size: Cookies.get('size') || 'default',
+      loginVisible: false,
+      showRegister: false
     }),
     actions: {
+      setLoginVisible(visible) {
+        this.loginVisible = visible
+        // Reset to login by default when closing or opening, unless explicitly set otherwise
+        if (!visible) this.showRegister = false
+      },
+      setShowRegister(show) {
+        this.showRegister = show
+        if (show) this.loginVisible = true
+      },
       toggleSideBar(withoutAnimation) {
         if (this.sidebar.hide) {
           return false;

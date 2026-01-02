@@ -93,7 +93,7 @@ watch(() => props.modelValue, val => {
     // 然后将数组转为对象数组
     fileList.value = list.map(item => {
       if (typeof item === "string") {
-        if (item.indexOf(baseUrl) === -1) {
+        if (item.indexOf(baseUrl) === -1 && item.indexOf("http") === -1) {
           item = { name: baseUrl + item, url: baseUrl + item };
         } else {
           item = { name: item, url: item };
@@ -148,7 +148,7 @@ function handleExceed() {
 // 上传成功回调
 function handleUploadSuccess(res, file) {
   if (res.code === 200) {
-    uploadList.value.push({ name: res.fileName, url: res.fileName });
+    uploadList.value.push({ name: res.newFileName, url: res.url });
     uploadedSuccessfully();
   } else {
     number.value--;
@@ -198,7 +198,11 @@ function listToString(list, separator) {
   separator = separator || ",";
   for (let i in list) {
     if (undefined !== list[i].url && list[i].url.indexOf("blob:") !== 0) {
-      strs += list[i].url.replace(baseUrl, "") + separator;
+      if (list[i].url.indexOf("http") !== -1 && list[i].url.indexOf(baseUrl) === -1) {
+        strs += list[i].url + separator;
+      } else {
+        strs += list[i].url.replace(baseUrl, "") + separator;
+      }
     }
   }
   return strs != "" ? strs.substr(0, strs.length - 1) : "";

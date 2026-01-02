@@ -1,14 +1,14 @@
 <template>
   <div class="login">
     <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
-      <h3 class="title">若依后台管理系统</h3>
+      <h3 class="title">教学管理系统</h3>
       <el-form-item prop="username">
         <el-input
           v-model="loginForm.username"
           type="text"
           size="large"
           auto-complete="off"
-          placeholder="账号"
+          placeholder="账号/邮箱"
         >
           <template #prefix><svg-icon icon-class="user" class="el-input__icon input-icon" /></template>
         </el-input>
@@ -57,10 +57,6 @@
         </div>
       </el-form-item>
     </el-form>
-    <!--  底部  -->
-    <div class="el-login-footer">
-      <span>Copyright © 2018-2023 ruoyi.vip All Rights Reserved.</span>
-    </div>
   </div>
 </template>
 
@@ -84,7 +80,7 @@ const loginForm = ref({
 });
 
 const loginRules = {
-  username: [{ required: true, trigger: "blur", message: "请输入您的账号" }],
+  username: [{ required: true, trigger: "blur", message: "请输入您的账号或邮箱" }],
   password: [{ required: true, trigger: "blur", message: "请输入您的密码" }],
   code: [{ required: true, trigger: "change", message: "请输入验证码" }]
 };
@@ -125,7 +121,7 @@ function handleLogin() {
           }
           return acc;
         }, {});
-        router.push({ path: redirect.value || "/", query: otherQueryParams });
+        router.push({ path: redirect.value || "/portal", query: otherQueryParams });
       }).catch(() => {
         loading.value = false;
         // 重新获取验证码
@@ -140,6 +136,9 @@ function handleLogin() {
 function getCode() {
   getCodeImg().then(res => {
     captchaEnabled.value = res.captchaEnabled === undefined ? true : res.captchaEnabled;
+    if (res.registerEnabled !== undefined) {
+      register.value = res.registerEnabled;
+    }
     if (captchaEnabled.value) {
       codeUrl.value = "data:image/gif;base64," + res.img;
       loginForm.value.uuid = res.uuid;

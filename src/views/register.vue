@@ -1,14 +1,44 @@
 <template>
   <div class="register">
     <el-form ref="registerRef" :model="registerForm" :rules="registerRules" class="register-form">
-      <h3 class="title">若依后台管理系统</h3>
+      <h3 class="title">教学管理系统</h3>
       <el-form-item prop="username">
         <el-input 
           v-model="registerForm.username" 
           type="text" 
           size="large" 
           auto-complete="off" 
-          placeholder="账号"
+          placeholder="邮箱"
+        >
+          <template #prefix><svg-icon icon-class="email" class="el-input__icon input-icon" /></template>
+        </el-input>
+      </el-form-item>
+      <el-form-item prop="code">
+        <div style="display: flex; width: 100%; align-items: center;">
+          <el-input
+            size="large" 
+            v-model="registerForm.code"
+            auto-complete="off"
+            placeholder="验证码"
+            style="width: 200px; margin-right: 10px;"
+          >
+            <template #prefix><svg-icon icon-class="validCode" class="el-input__icon input-icon" /></template>
+          </el-input>
+          <div class="register-code" style="flex: 1;">
+            <el-button size="large" type="primary" :disabled="isSending" @click="handleSendCode" style="width: 100%">
+              {{ isSending ? `${count}s后重新获取` : '获取验证码' }}
+            </el-button>
+          </div>
+        </div>
+      </el-form-item>
+       <el-form-item prop="nickName">
+        <el-input 
+          v-model="registerForm.nickName" 
+          type="text" 
+          size="large" 
+          auto-complete="off" 
+          placeholder="用户名字"
+          @keyup.enter="handleRegister"
         >
           <template #prefix><svg-icon icon-class="user" class="el-input__icon input-icon" /></template>
         </el-input>
@@ -20,7 +50,6 @@
           size="large" 
           auto-complete="off"
           placeholder="密码"
-          @keyup.enter="handleRegister"
         >
           <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
         </el-input>
@@ -32,26 +61,11 @@
           size="large" 
           auto-complete="off"
           placeholder="确认密码"
-          @keyup.enter="handleRegister"
         >
           <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
         </el-input>
       </el-form-item>
-      <el-form-item prop="code" v-if="captchaEnabled">
-        <el-input
-          size="large" 
-          v-model="registerForm.code"
-          auto-complete="off"
-          placeholder="验证码"
-          style="width: 63%"
-          @keyup.enter="handleRegister"
-        >
-          <template #prefix><svg-icon icon-class="validCode" class="el-input__icon input-icon" /></template>
-        </el-input>
-        <div class="register-code">
-          <img :src="codeUrl" @click="getCode" class="register-code-img"/>
-        </div>
-      </el-form-item>
+     
       <el-form-item style="width:100%;">
         <el-button
           :loading="loading"
@@ -76,8 +90,8 @@
 </template>
 
 <script setup>
-import { ElMessageBox } from "element-plus";
-import { getCodeImg, register } from "@/api/login";
+import { ElMessageBox, ElMessage } from "element-plus";
+import { register, sendEmailCode } from "@/api/login";
 
 const router = useRouter();
 const { proxy } = getCurrentInstance();
@@ -87,6 +101,7 @@ const registerForm = ref({
   password: "",
   confirmPassword: "",
   code: "",
+  nickName: "",
   uuid: ""
 });
 
@@ -100,8 +115,8 @@ const equalToPassword = (rule, value, callback) => {
 
 const registerRules = {
   username: [
-    { required: true, trigger: "blur", message: "请输入您的账号" },
-    { min: 2, max: 20, message: "用户账号长度必须介于 2 和 20 之间", trigger: "blur" }
+    { required: true, trigger: "blur", message: "请输入您的邮箱" },
+    { type: "email", message: "请输入正确的邮箱地址", trigger: ["blur", "change"] }
   ],
   password: [
     { required: true, trigger: "blur", message: "请输入您的密码" },
@@ -111,12 +126,47 @@ const registerRules = {
     { required: true, trigger: "blur", message: "请再次输入您的密码" },
     { required: true, validator: equalToPassword, trigger: "blur" }
   ],
-  code: [{ required: true, trigger: "change", message: "请输入验证码" }]
+  code: [{ required: true, trigger: "change", message: "请输入验证码" }],
+  nickName: [{ required: true, trigger: "blur", message: "请输入用户名称" }]
 };
 
-const codeUrl = ref("");
 const loading = ref(false);
-const captchaEnabled = ref(true);
+const isSending = ref(false);
+const count = ref(60);
+let timer = null;
+
+function handleSendCode() {
+  if (!registerForm.value.username) {
+    ElMessage.error("请先输入邮箱");
+    return;
+  }
+  // 简单校验邮箱格式
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(registerForm.value.username)) {
+    ElMessage.error("请输入正确的邮箱地址");
+    return;
+  }
+
+  isSending.value = true;
+  sendEmailCode(registerForm.value.username).then(res => {
+    ElMessage.success("验证码已发送，请注意查收");
+    startCountDown();
+  }).catch(() => {
+    isSending.value = false;
+  });
+}
+
+function startCountDown() {
+  count.value = 60;
+  timer = setInterval(() => {
+    if (count.value > 0) {
+      count.value--;
+    } else {
+      clearInterval(timer);
+      isSending.value = false;
+    }
+  }, 1000);
+}
 
 function handleRegister() {
   proxy.$refs.registerRef.validate(valid => {
@@ -132,25 +182,10 @@ function handleRegister() {
         }).catch(() => {});
       }).catch(() => {
         loading.value = false;
-        if (captchaEnabled) {
-          getCode();
-        }
       });
     }
   });
 }
-
-function getCode() {
-  getCodeImg().then(res => {
-    captchaEnabled.value = res.captchaEnabled === undefined ? true : res.captchaEnabled;
-    if (captchaEnabled.value) {
-      codeUrl.value = "data:image/gif;base64," + res.img;
-      registerForm.value.uuid = res.uuid;
-    }
-  });
-}
-
-getCode();
 </script>
 
 <style lang='scss' scoped>
@@ -191,9 +226,7 @@ getCode();
   color: #bfbfbf;
 }
 .register-code {
-  width: 33%;
   height: 40px;
-  float: right;
   img {
     cursor: pointer;
     vertical-align: middle;

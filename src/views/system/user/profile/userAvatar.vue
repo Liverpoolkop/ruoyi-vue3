@@ -67,6 +67,10 @@ import useUserStore from "@/store/modules/user";
 const userStore = useUserStore();
 const { proxy } = getCurrentInstance();
 
+watch(() => userStore.avatar, (val) => {
+  options.img = val;
+});
+
 const open = ref(false);
 const visible = ref(false);
 const title = ref("修改头像");
@@ -128,6 +132,9 @@ function uploadImg() {
       open.value = false;
       options.img = import.meta.env.VITE_APP_BASE_API + response.imgUrl;
       userStore.avatar = options.img;
+      userStore.getInfo().then(() => {
+        options.img = userStore.avatar;
+      });
       proxy.$modal.msgSuccess("修改成功");
       visible.value = false;
     });

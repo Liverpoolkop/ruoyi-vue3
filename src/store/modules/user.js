@@ -9,6 +9,9 @@ const useUserStore = defineStore(
       token: getToken(),
       id: '',
       name: '',
+      nickName: '',
+      email: '',
+      phonenumber: '',
       avatar: '',
       roles: [],
       permissions: []
@@ -24,7 +27,11 @@ const useUserStore = defineStore(
           login(username, password, code, uuid).then(res => {
             setToken(res.token)
             this.token = res.token
-            resolve()
+            this.getInfo().then(() => {
+              resolve()
+            }).catch(error => {
+              reject(error)
+            })
           }).catch(error => {
             reject(error)
           })
@@ -34,8 +41,9 @@ const useUserStore = defineStore(
       getInfo() {
         return new Promise((resolve, reject) => {
           getInfo().then(res => {
+            console.log("getInfo", res)
             const user = res.user
-            const avatar = (user.avatar == "" || user.avatar == null) ? defAva : import.meta.env.VITE_APP_BASE_API + user.avatar;
+            const avatar = (user.avatar == "" || user.avatar == null) ? "" : (user.avatar.startsWith('http') ? user.avatar : import.meta.env.VITE_APP_BASE_API + user.avatar);
 
             if (res.roles && res.roles.length > 0) { // 验证返回的roles是否是一个非空数组
               this.roles = res.roles
@@ -45,6 +53,9 @@ const useUserStore = defineStore(
             }
             this.id = user.userId
             this.name = user.userName
+            this.nickName = user.nickName
+            this.email = user.email
+            this.phonenumber = user.phonenumber
             this.avatar = avatar
             resolve(res)
           }).catch(error => {
@@ -59,6 +70,10 @@ const useUserStore = defineStore(
             this.token = ''
             this.roles = []
             this.permissions = []
+            this.name = ''
+            this.nickName = ''
+            this.email = ''
+            this.phonenumber = ''
             removeToken()
             resolve()
           }).catch(error => {

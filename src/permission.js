@@ -11,7 +11,7 @@ import usePermissionStore from '@/store/modules/permission'
 
 NProgress.configure({ showSpinner: false });
 
-const whiteList = ['/login', '/register'];
+const whiteList = ['/login', '/register', '/portal'];
 
 router.beforeEach((to, from, next) => {
   NProgress.start()
@@ -19,10 +19,8 @@ router.beforeEach((to, from, next) => {
     to.meta.title && useSettingsStore().setTitle(to.meta.title)
     /* has token*/
     if (to.path === '/login') {
-      next({ path: '/' })
+      next({ path: '/portal' })
       NProgress.done()
-    } else if (whiteList.indexOf(to.path) !== -1) {
-      next()
     } else {
       if (useUserStore().roles.length === 0) {
         isRelogin.show = true
@@ -50,7 +48,7 @@ router.beforeEach((to, from, next) => {
     }
   } else {
     // 没有token
-    if (whiteList.indexOf(to.path) !== -1) {
+    if (whiteList.some(path => to.path.startsWith(path)) || to.path.startsWith('/system/course/index/')) {
       // 在免登录白名单，直接进入
       next()
     } else {

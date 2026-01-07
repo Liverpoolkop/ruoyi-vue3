@@ -67,6 +67,15 @@
               <el-icon><School /></el-icon>
               <span>我加入的班级</span>
             </div>
+            <div 
+              v-if="isTeacher" 
+              class="menu-item" 
+              :class="{ active: activeTab === 'questionBank' }"
+              @click="handleTabClick('questionBank')"
+            >
+              <el-icon><DataBoard /></el-icon>
+              <span>题库管理</span>
+            </div>
           </div>
         </div>
 
@@ -180,10 +189,50 @@
               </div>
               <el-empty v-else description="暂无加入的班级" />
             </div>
+            <!-- 题库管理 -->
+            <div v-if="activeTab === 'questionBank'">
+              <el-button @click="openAddQuestionDialog" type="primary" icon="Plus">新增题目</el-button>
+              <el-table :data="questions" style="width: 100%">
+                <el-table-column label="题目" prop="content"></el-table-column>
+                <el-table-column label="题型" prop="questionType"></el-table-column>
+                <el-table-column label="难度" prop="difficulty"></el-table-column>
+                <el-table-column label="操作">
+                  <template #default="scope">
+                    <el-button @click="editQuestion(scope.row)" size="small">编辑</el-button>
+                    <el-button @click="handleDeleteQuestion(scope.row)" size="small" type="danger">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
 
           </div>
         </div>
       </div>
+      <!-- Add Question Dialog -->
+      <el-dialog v-model="addQuestionDialogVisible" title="新增题目" width="500px">
+        <el-form :model="newQuestionForm">
+          <el-form-item label="题目" prop="content">
+            <el-input v-model="newQuestionForm.content" placeholder="请输入题目" />
+          </el-form-item>
+          <el-form-item label="题型" prop="questionType">
+            <el-select v-model="newQuestionForm.questionType" placeholder="请选择题型">
+              <el-option label="选择题" value="multiple_choice" />
+              <el-option label="简答题" value="short_answer" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="难度" prop="difficulty">
+            <el-select v-model="newQuestionForm.difficulty" placeholder="请选择难度">
+              <el-option label="简单" :value="1" />
+              <el-option label="中等" :value="2" />
+              <el-option label="困难" :value="3" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button @click="handleAddQuestion" type="primary">提交</el-button>
+            <el-button @click="addQuestionDialogVisible = false">取消</el-button>
+          </el-form-item>
+        </el-form>
+        </el-dialog>
     </div>
 
     <!-- Create Course Dialog -->
@@ -218,7 +267,7 @@
 </template>
 
 <script setup name="PortalProfile">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed,watch } from 'vue'
 import PortalNavbar from '@/components/PortalNavbar/index.vue'
 import userAvatar from '@/views/system/user/profile/userAvatar.vue'
 import userInfo from '@/views/system/user/profile/userInfo.vue'
@@ -231,6 +280,13 @@ import { User, Lock, Reading, Key, Plus, Avatar, School, DataBoard } from '@elem
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import useUserStore from '@/store/modules/user'
+import {
+  getQuestionBank,
+  addQuestion as addQuestionApi,
+  editQuestion as editQuestionApi,
+  deleteQuestion as deleteQuestionApi
+} from '@/api/edu/questionBank'
+
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -241,6 +297,78 @@ const state = reactive({
   postGroup: {}
 })
 const defaultImg = 'https://cube.elemecdn.com/6/94/4d3ea53c084bad6931a56d5158a48jpeg.jpeg'
+
+//题库
+//判断用户角色是否是教师或管理员
+
+const questions = ref([])
+watch(activeTab, (tab) => {
+  console.log('切换到：', tab)
+
+  if (['courses', 'managed_classes', 'joined_classes'].includes(tab)) {
+    loadData()
+  }
+
+  if (tab === 'questionBank') {
+    getQuestions()
+  }
+}, { immediate: true })
+const getQuestions = () => {
+  getQuestionBank().then(response => {
+    questions.value = response.data || []
+  }).catch(error => {
+    ElMessage.error('加载题库失败')
+  })
+}
+
+const openAddQuestionDialog = () => {
+  // 打开对话框，触发新增题目的逻辑
+  addQuestionDialogVisible.value = true
+}
+
+const editQuestion = (question) => {
+  // 编辑题目的逻辑
+}
+
+const handleDeleteQuestion = (row) => {
+  deleteQuestionApi(row.questionId).then(() => {
+    ElMessage.success('删除成功')
+    getQuestions()
+  })
+}
+
+const addQuestionDialogVisible = ref(false)
+const newQuestionForm = reactive({
+  content: '',
+  questionType: '',
+  difficulty: null,
+  tags: '',
+  answer: '',
+  analysis: '',
+  optionsJson: []  // 初始化为空数组
+})
+
+
+const handleAddQuestion = () => {
+  try {
+    // 如果 optionsJson 是一个对象或数组，我们需要将它转换为 JSON 字符串
+    if (typeof newQuestionForm.optionsJson !== 'string') {
+      newQuestionForm.optionsJson = JSON.stringify(newQuestionForm.optionsJson);
+    }
+    
+    // 调用 API 提交
+    addQuestionApi(newQuestionForm).then(() => {
+      ElMessage.success('新增成功')
+      addQuestionDialogVisible.value = false
+      getQuestions()
+    })
+  } catch (error) {
+    ElMessage.error('选项格式无效，请确保输入有效的 JSON')
+  }
+}
+
+
+
 
 // Course & Class Data
 const managedClasses = ref([])
@@ -307,9 +435,6 @@ function loadData() {
 
 function handleTabClick(tab) {
   activeTab.value = tab
-  if (['courses', 'managed_classes', 'joined_classes'].includes(tab)) {
-    loadData()
-  }
 }
 
 function handleJoinCourse() {
@@ -335,6 +460,7 @@ function handleCreateCourse() {
   courseForm.lessonHours = 32
   courseForm.status = '2'
 }
+
 
 function submitCreateCourse() {
   courseFormRef.value.validate(valid => {

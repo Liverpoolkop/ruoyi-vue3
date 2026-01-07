@@ -133,123 +133,211 @@
           </div>
         </div>
         
-        <!-- Homework -->
-        <div v-else-if="activeMenu === 'homework'" class="content-wrapper">
-          <div class="content-header">
-            <h2>测验与作业</h2>
-          </div>
-          <el-empty description="暂无作业" />
-        </div>
+<!-- Homework -->
+<div v-else-if="activeMenu === 'homework'" class="content-wrapper">
+  <div class="content-header">
+    <h2>测验与作业</h2>
+    <el-button
+      v-if="isTeacher"
+      type="primary"
+      size="small"
+      icon="Plus"
+      @click="openHomeworkDialog"
+    >
+      创建作业
+    </el-button>
+    
+  </div>
 
-        <!-- Exam -->
-        <div v-else-if="activeMenu === 'exam'" class="content-wrapper">
-           <div class="content-header">
-            <h2>考试</h2>
-          </div>
-          <el-empty description="暂无考试" />
-        </div>
+  <!--  ：筛选栏 -->
+  <div class="homework-filter">
+<el-input v-model="homeworkQuery.title" placeholder="按作业名筛选" clearable style="width:260px" />
 
-        <!-- Members -->
-        <div v-else-if="activeMenu === 'members'" class="content-wrapper">
-           <div class="content-header">
-            <h2>人员管理</h2>
-            <el-button type="primary" size="small" icon="Plus" @click="openStudentAddDialog">添加成员</el-button>
-          </div>
-          
-          <el-table 
-            v-if="students && students.length > 0"
-            :data="students" 
-            style="width: 100%" 
-            :header-cell-style="{background:'#f8f9fa', color:'#606266', fontWeight:'500'}"
-            class="member-table"
-          >
-            <el-table-column prop="userId" label="学号" width="100" align="center" sortable>
-              <template #default="scope">
-                <span class="id-cell">{{ scope.row.userId }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="姓名" min-width="200">
-              <template #default="scope">
-                <div class="user-cell">
-                  <el-avatar :size="40" :src="scope.row.avatar" class="user-avatar">{{ scope.row.nickName ? scope.row.nickName.charAt(0) : 'U' }}</el-avatar>
-                  <div class="user-info">
-                    <div class="nickname">{{ scope.row.nickName || '未设置昵称' }}</div>
-                    <div class="username">{{ scope.row.userName }}</div>
-                  </div>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column prop="phonenumber" label="手机号" width="150" align="center">
-              <template #default="scope">
-                <span v-if="scope.row.phonenumber">{{ scope.row.phonenumber }}</span>
-                <span v-else class="empty-text">-</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="email" label="邮箱" min-width="200">
-              <template #default="scope">
-                <span v-if="scope.row.email">{{ scope.row.email }}</span>
-                <span v-else class="empty-text">-</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="100" align="center" fixed="right">
-              <template #default="scope">
-                <el-button 
-                  type="danger" 
-                  link 
-                  size="small" 
-                  icon="Delete"
-                  class="action-btn"
-                  @click="handleRemoveStudent(scope.row)"
-                >
-                  移除
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-empty v-else description="暂无课程成员" />
-        </div>
+<el-select v-model="homeworkQuery.status" placeholder="按状态筛选" clearable style="width:160px">
+  <el-option label="草稿" value="0" />
+  <el-option label="已发布" value="1" />
+</el-select>
 
-        <!-- Settings -->
-        <div v-else-if="activeMenu === 'settings'" class="content-wrapper">
-           <div class="content-header">
-            <h2>课程设置</h2>
-          </div>
-          
-          <div class="settings-container">
-            <!-- Course Info Card -->
-            <div class="info-card">
-              <div class="card-left">
-                <img :src="course.courseImg || defaultImg" class="settings-cover" />
-              </div>
-              <div class="card-right">
-                <div class="info-header">
-                  <h3 class="course-title">{{ course.courseName }}</h3>
-                  <el-tag :type="course.status === '0' ? 'success' : (course.status === '1' ? 'info' : 'warning')">
-                    {{ getStatusText(course.status) }}
-                  </el-tag>
-                </div>
-                
-                <div class="info-desc">{{ course.courseDesc || '暂无简介' }}</div>
-                
-                <div class="info-stats">
-                  <div class="stat-item">
-                    <div class="label">学生人数</div>
-                    <div class="value">{{ course.studentCount || students.length || 0 }}</div>
-                  </div>
-                  <div class="stat-item">
-                    <div class="label">课时</div>
-                    <div class="value">{{ course.lessonHours || 0 }}</div>
-                  </div>
-                </div>
-                
-                <div class="info-actions">
-                  <el-button type="primary" icon="Edit" @click="openEditCourseDialog">编辑课程信息</el-button>
-                  <el-button type="danger" plain icon="Delete" @click="handleDeleteCourse">删除课程</el-button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+<el-button @click="() => { homeworkQuery.title=''; homeworkQuery.status=''; applyHomeworkFilter() }">重置</el-button>
+
+  </div>
+  <!-- 有作业 -->
+  <div v-if="homeworkList.length">
+      <el-table :data="filteredHomeworkList" style="width: 100%" @row-click="handleHomeworkRowClick">
+      <el-table-column prop="title" label="标题" min-width="160" show-overflow-tooltip />
+      <el-table-column prop="content" label="内容" min-width="260" show-overflow-tooltip />
+      <el-table-column prop="deadline" label="截止时间" width="180" align="center" />
+      
+      <!-- 增加批改按钮 -->
+  <el-table-column label="批改" width="120" align="center">
+  <template #default="{ row }">
+    <el-button
+      v-if="isTeacher"
+      type="primary"
+      size="small"
+      @click.stop="openSubmitsDialog(row)"
+    >
+      批改
+    </el-button>
+  </template>
+</el-table-column>
+
+      <!-- 增加提交情况列 -->
+  <el-table-column label="提交" width="120" align="center">
+    <template #default="{ row }">
+      <el-tag :type="mySubmitMap[row.homeworkId] ? 'success' : 'info'">
+        {{ mySubmitMap[row.homeworkId] ? '已提交' : '未提交' }}
+      </el-tag>
+    </template>
+  </el-table-column>
+      <el-table-column label="状态" width="100" align="center">
+
+        <template #default="{ row }">
+          <el-tag :type="row.status === '1' ? 'success' : 'info'">
+            {{ row.status === '1' ? '已发布' : '草稿' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="createBy" label="创建人" width="140" align="center" />
+      <el-table-column prop="createTime" label="创建时间" width="180" align="center" />
+      </el-table>
+
+
+  </div>
+
+  <!-- 无作业 -->
+  <el-empty v-else description="暂无作业" />
+
+
+  <el-dialog v-model="homeworkOpen" title="创建作业" width="520px">
+    <el-form :model="homeworkForm" label-width="80px">
+      <el-form-item label="标题">
+        <el-input v-model="homeworkForm.title" placeholder="请输入作业标题" />
+      </el-form-item>
+
+      <el-form-item label="要求">
+        <el-input
+          v-model="homeworkForm.content"
+          type="textarea"
+          :rows="4"
+          placeholder="请输入作业要求"
+        />
+      </el-form-item>
+
+      <el-form-item label="截止时间">
+        <el-date-picker
+          v-model="homeworkForm.deadline"
+          type="datetime"
+          value-format="YYYY-MM-DD HH:mm:ss"
+          placeholder="选择截止时间"
+          style="width: 100%;"
+        />
+      </el-form-item>
+
+      <el-form-item label="状态">
+        <el-radio-group v-model="homeworkForm.status">
+          <el-radio label="0">草稿</el-radio>
+          <el-radio label="1">发布</el-radio>
+        </el-radio-group>
+      </el-form-item>
+    </el-form>
+
+    <template #footer>
+      <el-button @click="homeworkOpen = false">取消</el-button>
+      <el-button type="primary" :loading="homeworkSaving" @click="submitCreateHomework">
+        提交
+      </el-button>
+    </template>
+  </el-dialog>
+<!-- 评分与评语弹窗 -->
+  <el-dialog v-model="gradeOpen" title="评分与评语" width="700px">
+    <div v-if="gradingRow" style="margin-bottom: 10px;">
+      <div><b>学生：</b>{{ gradingRow.studentName }}</div>
+      <div><b>提交时间：</b>{{ gradingRow.submitTime }}</div>
+    </div>
+
+    <el-form label-width="80px">
+      <el-form-item label="作业内容">
+        <el-input :model-value="gradingRow?.submitContent" type="textarea" :rows="8" disabled />
+      </el-form-item>
+
+      <el-form-item label="分数">
+        <el-input-number v-model="gradeForm.score" :min="0" :max="100" />
+      </el-form-item>
+
+      <el-form-item label="评语">
+        <el-input v-model="gradeForm.teacherComment" type="textarea" :rows="4" placeholder="请输入评语" />
+      </el-form-item>
+    </el-form>
+
+    <template #footer>
+      <el-button @click="gradeOpen=false">取消</el-button>
+      <el-button type="primary" :loading="gradeLoading" @click="doGrade">保存</el-button>
+    </template>
+  </el-dialog>
+  <!-- 教师：查看提交列表 -->
+<el-dialog v-model="teacherSubmitsOpen" title="学生提交列表" width="900px">
+  <div v-if="currentHomework" style="margin-bottom: 10px;">
+    <b>作业：</b>{{ currentHomework.title }}
+  </div>
+
+  <el-table :data="teacherSubmits" style="width:100%">
+    <el-table-column prop="studentName" label="学生" width="140" />
+    <el-table-column prop="submitTime" label="提交时间" width="180" />
+    <el-table-column prop="submitStatus" label="状态" width="100">
+      <template #default="{ row }">
+        <el-tag :type="row.submitStatus === '2' ? 'success' : 'info'">
+          {{ row.submitStatus === '2' ? '已评分' : '已提交' }}
+        </el-tag>
+      </template>
+    </el-table-column>
+    <el-table-column prop="score" label="分数" width="100" />
+    <el-table-column prop="gradeTime" label="评分时间" width="180" />
+    <el-table-column label="操作" width="140" fixed="right">
+      <template #default="{ row }">
+        <el-button type="primary" link @click="openGradeDialog(row)">
+          {{ row.submitStatus === '2' ? '查看/改分' : '评分' }}
+        </el-button>
+      </template>
+    </el-table-column>
+  </el-table>
+
+  <template #footer>
+    <el-button @click="teacherSubmitsOpen=false">关闭</el-button>
+  </template>
+</el-dialog>
+
+
+
+  <!--  学生提交作业弹窗 -->
+<el-dialog v-model="homeworkSubmitOpen" title="提交作业" width="600px">
+  <div v-if="currentHomework" style="margin-bottom: 10px;">
+    <div><b>标题：</b>{{ currentHomework.title }}</div>
+    <div><b>要求：</b>{{ currentHomework.content }}</div>
+    <div><b>截止：</b>{{ currentHomework.deadline }}</div>
+  </div>
+
+  <el-form label-width="80px">
+    <el-form-item label="作业内容">
+      <el-input
+        v-model="submitForm.submitContent"
+        type="textarea"
+        :rows="8"
+        placeholder="请输入你的作业内容"
+      />
+    </el-form-item>
+  </el-form>
+
+  <template #footer>
+    <el-button @click="homeworkSubmitOpen = false">取消</el-button>
+    <el-button type="primary" :loading="submitLoading" @click="doSubmitHomework">
+      提交
+    </el-button>
+  </template>
+</el-dialog>
+
+</div>
+
 
       </div>
     </div>
@@ -486,6 +574,9 @@
 </template>
 
 <script setup>
+import { addHomework, listHomework, submitHomework as submitHomeworkApi, listMySubmits,
+  listHomeworkSubmits,
+  gradeHomeworkSubmit } from '@/api/edu/homework'
 import { ref, onMounted, computed, watch, getCurrentInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getToken } from '@/utils/auth'
@@ -504,8 +595,216 @@ const { proxy } = getCurrentInstance()
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const gradeOpen = ref(false)  // 控制弹窗显示
+const gradingRow = ref(null)  // 存储正在批改的作业数据
+// ===== 教师：提交列表 & 批改 =====
+const teacherSubmitsOpen = ref(false)
+const teacherSubmits = ref([])
+
+// 拉取某个作业的提交列表
+const loadTeacherSubmits = async (homeworkId) => {
+  const res = await listHomeworkSubmits({ homeworkId })
+  teacherSubmits.value = res.data || res.rows || []
+}
+
+// 老师点“批改”按钮：打开提交列表弹窗
+const openSubmitsDialog = async (homeworkRow) => {
+  currentHomework.value = homeworkRow
+  teacherSubmitsOpen.value = true
+  await loadTeacherSubmits(homeworkRow.homeworkId)
+}
+
+const gradeForm = ref({
+  score: null, // 分数
+  teacherComment: ''  // 评语
+})
+const gradeLoading = ref(false)  // 提交按钮加载状态
+
+// 打开评分弹窗
+const openGradeDialog = (row) => {
+  gradingRow.value = row
+  gradeForm.value.score = row.score || null  // 如果已评分，则显示分数
+  gradeForm.value.teacherComment = row.teacherComment || ''  // 显示评语
+  gradeOpen.value = true
+}
+
+// 提交评分
+const doGrade = async () => {
+  if (gradeForm.value.score == null || gradeForm.value.teacherComment.trim() === '') {
+    ElMessage.warning('分数和评语不能为空')
+    return
+  }
+  gradeLoading.value = true
+  try {
+    // 提交评分的 API 请求
+    await gradeHomeworkSubmit(gradingRow.value.submitId, gradeForm.value.score, gradeForm.value.teacherComment)
+    ElMessage.success('评分成功')
+    gradeOpen.value = false
+    // 更新列表，重新加载作业提交情况
+    await loadTeacherSubmits(currentHomework.value.homeworkId)
+
+  } finally {
+    gradeLoading.value = false
+  }
+}
+
+
 
 const courseId = route.params.id
+// ===== 作业创建（Homework Create）=====
+
+const homeworkList = ref([])
+//  筛选条件
+const homeworkQuery = ref({
+  title: '',   // 作业名关键字
+  status: ''   // '' 表示全部；'0' 草稿；'1' 发布
+})
+const homeworkRaw = ref([])   //  后端全量数据（不直接渲染）
+//学生提交作业用
+// ===== 学生提交作业（Homework Submit）=====
+const homeworkSubmitOpen = ref(false)
+const currentHomework = ref(null)
+const submitLoading = ref(false)
+
+const submitForm = ref({
+  homeworkId: null,
+  submitContent: ''
+})
+
+// key=homeworkId，value=提交记录
+const mySubmitMap = ref({})
+
+const loadMySubmits = async () => {
+  const res = await listMySubmits({ courseId: Number(courseId) })
+  const arr = res.data || []
+  const map = {}
+  arr.forEach(s => { map[s.homeworkId] = s })
+  mySubmitMap.value = map
+}
+
+// 点击作业行 -> 打开提交弹窗（老师不弹）
+const handleHomeworkRowClick = async (row) => {
+    // 老师：打开提交列表
+  if (isTeacher.value) {
+    return
+  }
+  currentHomework.value = row
+
+
+
+  // 学生：打开提交弹窗
+  if (String(row.status) !== '1') {
+    ElMessage.warning('该作业尚未发布，不能提交')
+    return
+  }
+
+  submitForm.value.homeworkId = row.homeworkId
+  const existed = mySubmitMap.value[row.homeworkId]
+  submitForm.value.submitContent = existed ? (existed.submitContent || '') : ''
+  homeworkSubmitOpen.value = true
+}
+
+
+const doSubmitHomework = async () => {
+  if (!submitForm.value.submitContent || !submitForm.value.submitContent.trim()) {
+    ElMessage.warning('请填写作业内容')
+    return
+  }
+  submitLoading.value = true
+  try {
+    await submitHomeworkApi({
+      courseId: Number(courseId),
+      homeworkId: submitForm.value.homeworkId,
+      submitContent: submitForm.value.submitContent
+    })
+    ElMessage.success('提交成功')
+    homeworkSubmitOpen.value = false
+    await loadMySubmits() // 刷新“已提交/未提交”
+  } finally {
+    submitLoading.value = false
+  }
+}
+//检查
+
+
+//  展示用：过滤后的列表（实时响应）
+const filteredHomeworkList = computed(() => {
+  const kw = (homeworkQuery.value.title || '').trim().toLowerCase()
+  const st = homeworkQuery.value.status
+
+  return (homeworkList.value || []).filter(h => {
+    const okStatus = !st || String(h.status) === String(st)
+    const okTitle = !kw || String(h.title || '').toLowerCase().includes(kw)
+    return okStatus && okTitle
+  })
+})
+
+
+const applyHomeworkFilter = () => {
+  const kw = (homeworkQuery.value.title || '').trim().toLowerCase()
+  const st = homeworkQuery.value.status
+
+  homeworkList.value = homeworkRaw.value.filter(h => {
+    const okStatus = !st || String(h.status) === String(st)
+    const okTitle = !kw || String(h.title || '').toLowerCase().includes(kw)
+    return okStatus && okTitle
+  })
+}
+watch(
+  () => [homeworkQuery.value.title, homeworkQuery.value.status],
+  () => applyHomeworkFilter()
+)
+
+
+
+const resetHomeworkFilter = () => {
+  homeworkQuery.value.title = ''
+  homeworkQuery.value.status = ''
+}
+const homeworkOpen = ref(false)
+const homeworkSaving = ref(false)
+const homeworkForm = ref({
+  courseId: null,
+  title: '',
+  content: '',
+  deadline: '',
+  status: '0'
+})
+
+
+
+const loadHomework = async () => {
+  const res = await listHomework({ courseId: Number(courseId) })
+  homeworkRaw.value = res.data || res.rows || []
+  applyHomeworkFilter()
+}
+
+
+const openHomeworkDialog = () => {
+  homeworkForm.value = {
+    courseId: Number(courseId),
+    title: '',
+    content: '',
+    deadline: '',
+    status: '0'
+  }
+  homeworkOpen.value = true
+}
+
+const submitCreateHomework = async () => {
+  homeworkSaving.value = true
+  try {
+    homeworkForm.value.courseId = Number(courseId)
+    await addHomework(homeworkForm.value)
+    ElMessage.success('创建成功')
+    homeworkOpen.value = false
+    await loadHomework()
+  } finally {
+    homeworkSaving.value = false
+  }
+}
+
+
 const course = ref({})
 const chapters = ref([])
 const notices = ref([])
@@ -669,6 +968,9 @@ watch(activeMenu, (val) => {
     loadNotices()
   } else if (val === 'members') {
     loadStudents()
+  } else if (val === 'homework') {
+    loadHomework()
+    loadMySubmits()
   }
 })
 
@@ -1402,4 +1704,11 @@ const getStatusText = (status) => {
     flex-shrink: 0;
   }
 }
+.homework-filter {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
 </style>

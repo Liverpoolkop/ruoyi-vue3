@@ -133,6 +133,82 @@
           </div>
         </div>
         
+        <!-- Resources -->
+        <div v-else-if="activeMenu === 'resources'" class="content-wrapper">
+  <div class="content-header">
+    <h2>教学资源</h2>
+    <el-button v-if="isTeacher" type="primary" size="small" icon="Upload" @click="openResourceUpload">上传资源</el-button>
+  </div>
+
+  <el-table 
+    v-if="resourceList && resourceList.length > 0"
+    :data="resourceList" 
+    style="width: 100%"
+    :header-cell-style="{background:'#f8f9fa', color:'#606266'}"
+  >
+    <el-table-column label="资源名称" min-width="280">
+      <template #default="scope">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <el-icon :size="20" color="#409EFF" v-if="scope.row.category === 'video'"><VideoPlay /></el-icon>
+          <el-icon :size="20" color="#67C23A" v-else-if="scope.row.category === 'image'"><Picture /></el-icon>
+          <el-icon :size="20" color="#E6A23C" v-else-if="scope.row.category === 'doc'"><Document /></el-icon>
+          <el-icon :size="20" color="#909399" v-else><Files /></el-icon>
+          
+          <el-tag size="small" type="info" effect="plain" style="font-family: monospace;">
+            {{ getFileExt(scope.row.filePath) }}
+          </el-tag>
+
+          <span style="font-weight: 500;">{{ scope.row.resourceName }}</span>
+          
+          <el-tag v-if="isTeacher && scope.row.status === '1'" type="warning" size="small" effect="dark" style="margin-left: 5px;">
+             隐藏中
+          </el-tag>
+        </div>
+      </template>
+    </el-table-column>
+
+    <el-table-column prop="fileSize" label="大小" width="100" align="center" />
+    <el-table-column prop="createTime" label="上传时间" width="160" align="center" />
+    
+    <el-table-column prop="downloadCount" label="下载" width="90" align="center">
+      <template #default="scope">{{ scope.row.downloadCount }} 次</template>
+    </el-table-column>
+
+    <el-table-column v-if="isTeacher" label="状态" width="100" align="center">
+      <template #default="scope">
+        <el-switch
+          v-model="scope.row.status"
+          active-value="0"
+          inactive-value="1"
+          active-text="发布"
+          inactive-text="隐藏"
+          inline-prompt
+          style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+          @change="handleStatusChange(scope.row)"
+        />
+      </template>
+    </el-table-column>
+
+    <el-table-column label="操作" width="220" align="center" fixed="right">
+      <template #default="scope">
+        <el-button link type="success" icon="View" @click="handlePreview(scope.row)">预览</el-button>
+        
+        <el-button link type="primary" icon="Download" @click="handleDownload(scope.row)">下载</el-button>
+        
+        <el-button 
+          v-if="isTeacher" 
+          link 
+          type="danger" 
+          icon="Delete" 
+          @click="handleDeleteResource(scope.row)"
+        >删除</el-button>
+      </template>
+    </el-table-column>
+  </el-table>
+
+  <el-empty v-else description="暂无教学资源" />
+        </div>
+
         <!-- Homework -->
         <div v-else-if="activeMenu === 'homework'" class="content-wrapper">
           <div class="content-header">
@@ -482,6 +558,46 @@
         <el-button type="primary" @click="copyCode">复制</el-button>
       </template>
     </el-dialog>
+
+    <!-- Add Resource Dialog -->
+    <el-dialog v-model="previewOpen" :title="previewTitle" width="70%" top="5vh" append-to-body>
+    <div class="preview-container" style="text-align: center; min-height: 400px; display: flex; align-items: center; justify-content: center; background: #000;">
+      <video v-if="previewType === 'video'" :src="previewUrl" controls style="max-width: 100%; max-height: 70vh;"></video>
+      <img v-if="previewType === 'image'" :src="previewUrl" style="max-width: 100%; max-height: 70vh; object-fit: contain;">
+      <iframe v-if="previewType === 'pdf'" :src="previewUrl" style="width: 100%; height: 70vh; border: none;"></iframe>
+      <div v-if="previewType === 'other'" style="color: #fff;">
+        <el-icon :size="50"><Warning /></el-icon>
+        <p>该文件格式不支持在线预览，请下载后查看</p>
+      </div>
+    </div>
+  </el-dialog>
+
+  <el-dialog v-model="resourceUploadOpen" title="上传教学资源" width="500px">
+    <el-form :model="resourceForm" ref="resourceRef" label-width="80px" :rules="resourceRules">
+      <el-form-item label="文件" prop="filePath">
+        <file-upload 
+          v-model="resourceForm.filePath" 
+          :limit="1" 
+          :fileSize="500" 
+          :fileType="['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'pdf', 'mp4', 'avi', 'mov', 'flv', 'png', 'jpg', 'jpeg']"
+        />
+        <div style="font-size: 12px; color: #999; line-height: 1.5; margin-top: 5px;">
+          文件上传后将自动使用原始文件名作为资源名称
+        </div>
+      </el-form-item>
+      
+      <el-form-item label="状态">
+        <el-radio-group v-model="resourceForm.status">
+          <el-radio label="0">立即发布</el-radio>
+          <el-radio label="1">暂存隐藏</el-radio>
+        </el-radio-group>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="resourceUploadOpen = false">取消</el-button>
+      <el-button type="primary" @click="submitResource">确定上传</el-button>
+    </template>
+  </el-dialog>
   </div>
 </template>
 
@@ -499,6 +615,9 @@ import useUserStore from '@/store/modules/user'
 import ImageUpload from '@/components/ImageUpload/index.vue'
 import defaultImg from '@/assets/images/profile.jpg'
 import defaultAvatar from '@/assets/images/profile.jpg'
+
+
+import { listResource, addResource, delResource,updateResource,downloadResource } from "@/api/edu/resource";
 
 const { proxy } = getCurrentInstance()
 const route = useRoute()
@@ -608,6 +727,213 @@ const studentSelected = ref([])
 const classList = ref([])
 const selectedClassId = ref(null)
 
+//Resource Logic
+// --- 状态定义 ---
+const resourceList = ref([]);
+const resourceUploadOpen = ref(false);
+const previewOpen = ref(false); // [新增] 预览弹窗开关
+const previewUrl = ref("");     // [新增] 预览地址
+const previewType = ref("");    // [新增] 预览类型
+const previewTitle = ref("");   // [新增] 预览标题
+
+// 表单只需这两个字段，resourceName 后台或提交前处理
+const resourceForm = ref({
+  courseId: null,
+  filePath: '',
+  resourceName: '', // 虽然弹窗不填，但提交需要
+  status: '0'
+});
+
+// 只需要校验文件是否存在
+const resourceRules = {
+  filePath: [{ required: true, message: "请上传文件", trigger: "change" }]
+};
+
+// --- 方法定义 ---
+
+// --- [辅助] 获取文件后缀 ---
+function getFileExt(path) {
+  if (!path) return '';
+  const parts = path.split('.');
+  return parts[parts.length - 1].toUpperCase();
+}
+
+// 1. 获取资源列表 (修改：学生过滤隐藏资源)
+function getResourceList() {
+  listResource({ courseId: course.value.courseId }).then(response => {
+    let rows = response.rows;
+    // 如果不是老师，只显示 status 为 '0' 的
+    if (!isTeacher.value) {
+      rows = rows.filter(item => item.status === '0');
+    }
+    resourceList.value = rows;
+  });
+}
+
+// 2. 打开上传弹窗 (重置)
+function openResourceUpload() {
+  resourceForm.value = {
+    courseId: course.value.courseId,
+    resourceName: '',
+    filePath: '',
+    status: '0'
+  };
+  resourceUploadOpen.value = true;
+}
+
+// [新增] 切换状态
+function handleStatusChange(row) {
+  const text = row.status === '0' ? '发布' : '隐藏';
+  // 乐观更新：UI已经变了，发送请求。如果失败再变回来
+  updateResource({ resourceId: row.resourceId, status: row.status }).then(() => {
+    ElMessage.success(`已${text}该资源`);
+  }).catch(() => {
+    // 失败回滚
+    row.status = row.status === '0' ? '1' : '0';
+  });
+}
+
+// [新增] 预览逻辑
+function handlePreview(row) {
+  const ext = getFileExt(row.filePath).toLowerCase();
+  // 拼接完整URL (假设你的 RuoYiConfig.profile 映射了 /dev-api/profile)
+  // 注意：这里需要根据你的实际环境地址拼接
+  const baseUrl = import.meta.env.VITE_APP_BASE_API; 
+  const fullUrl = baseUrl + row.filePath; 
+
+  previewTitle.value = row.resourceName;
+  previewUrl.value = fullUrl;
+
+  if (['mp4', 'webm', 'ogg'].includes(ext)) {
+    previewType.value = 'video';
+  } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+    previewType.value = 'image';
+  } else if (['pdf'].includes(ext)) {
+    previewType.value = 'pdf';
+  } else {
+    // Word/PPT/Excel 等浏览器无法直接预览
+    previewType.value = 'other';
+  }
+  
+  previewOpen.value = true;
+}
+
+// 3. 文件上传后的回调（为了自动回填文件名，提升体验）
+// 注意：这取决于你的 FileUpload 组件怎么写的，通常它v-model绑定的是路径
+// 如果组件不支持抛出文件名，这一步可以省略，让老师手填
+function handleFileChange(val) {
+  // 简单的自动填充逻辑：如果名称为空，尝试从路径截取文件名（仅作辅助）
+  if (!resourceForm.value.resourceName && val) {
+    const fileName = val.split('/').pop();
+    // 去掉 UUID 前缀 (若依上传通常会加 uuid_filename)
+    resourceForm.value.resourceName = fileName.substring(fileName.indexOf('_') + 1) || fileName;
+  }
+}
+
+// 4. 提交保存
+function submitResource() {
+  proxy.$refs["resourceRef"].validate(valid => {
+    if (valid) {
+      // 1. 获取完整路径中的文件名
+      // 例如路径: /profile/upload/2026/01/09/测试文件A_202601091230.txt
+      const path = resourceForm.value.filePath;
+      const fileNameWithTimestamp = path.split('/').pop(); // 拿到 "测试文件A_202601091230.txt"
+      
+      // 2. 提取文件后缀 (例如 .txt)
+      const lastDotIndex = fileNameWithTimestamp.lastIndexOf('.');
+      let nameBody = fileNameWithTimestamp;
+      if (lastDotIndex > -1) {
+        nameBody = fileNameWithTimestamp.substring(0, lastDotIndex); // 拿到 "测试文件A_202601091230"
+      }
+      
+      // 3. 【核心修改】处理下划线逻辑
+      // 现在的规则是：名字_时间戳。我们要去掉最后一个下划线及其后面的内容
+      const lastUnderscoreIndex = nameBody.lastIndexOf('_');
+      
+      if (lastUnderscoreIndex > -1) {
+        // 截取从 0 到 最后一个下划线 的部分
+        resourceForm.value.resourceName = nameBody.substring(0, lastUnderscoreIndex);
+      } else {
+        // 如果没有下划线，就直接用文件名
+        resourceForm.value.resourceName = nameBody;
+      }
+
+      // 发送请求
+      addResource(resourceForm.value).then(() => {
+        ElMessage.success("上传成功");
+        resourceUploadOpen.value = false;
+        getResourceList();
+      });
+    }
+  });
+}
+
+// // 5. 下载文件
+// function handleDownload(row) {
+//   // 调用后端下载接口，或者直接访问静态资源
+//   // 建议使用若依通用的 download 方法
+//   proxy.$download.resource(row.filePath); 
+//   // 或者如果你的后端实现了计数接口：
+//   // downloadResource(row.resourceId).then(res => { blob保存... })
+// }
+
+// 5. 下载文件 (已修改为：后端计数 + 流式下载)
+function handleDownload(row) {
+  // 1. 开启 Loading 遮罩，防止用户重复点击
+  proxy.$modal.loading("正在下载资源，请稍候...");
+
+  // 2. 调用后端接口 (传入 resourceId 而不是 filePath)
+  downloadResource(row.resourceId).then(res => {
+    // 3. 处理文件流 (Blob)
+    const blob = new Blob([res]);
+    
+    // 4. 决定下载时的文件名
+    // 优先使用原始文件名 (originName)，如果没有则使用资源标题 (resourceName)
+    const fileName = row.originName || row.resourceName || "download_file";
+
+    // 5. 创建临时的 <a> 标签触发浏览器下载
+    const link = document.createElement('a');
+    const url = window.URL.createObjectURL(blob);
+    link.href = url;
+    link.download = fileName; // 设置文件名
+    link.style.display = 'none';
+    
+    document.body.appendChild(link);
+    link.click(); // 模拟点击
+
+    // 6. 清理内存和 DOM
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(link);
+    
+    // 7. 关闭 Loading 并提示成功
+    proxy.$modal.closeLoading();
+    proxy.$modal.msgSuccess("下载已开始");
+    
+    //(可选) 刷新列表，这样你能立刻看到下载次数 +1
+    getResourceList(); 
+    
+  }).catch((err) => {
+    // 处理错误
+    proxy.$modal.closeLoading();
+    console.error("下载出错:", err);
+    proxy.$modal.msgError("下载失败，请检查文件是否存在");
+  });
+}
+
+// 6. 删除文件
+function handleDeleteResource(row) {
+  ElMessageBox.confirm('确认删除该资源吗?', '提示', {
+    type: 'warning'
+  }).then(() => {
+    delResource(row.resourceId).then(() => {
+      ElMessage.success("删除成功");
+      getResourceList();
+    });
+  });
+}
+
+
+
 // Invite Logic
 const inviteOpen = ref(false)
 const inviteResultOpen = ref(false)
@@ -649,6 +975,9 @@ const menuItems = computed(() => {
   const items = [
     { key: 'announcement', label: '公告', icon: 'Bell' },
     { key: 'courseware', label: '课件', icon: 'Document' },
+    // --- 新增代码 START ---
+    { key: 'resources', label: '教学资源', icon: 'FolderOpened' },
+    // --- 新增代码 END ---
     { key: 'homework', label: '测验与作业', icon: 'EditPen' },
     { key: 'exam', label: '考试', icon: 'Monitor' }
   ]
@@ -669,6 +998,10 @@ watch(activeMenu, (val) => {
     loadNotices()
   } else if (val === 'members') {
     loadStudents()
+  }
+  // 4. 教学资源 (这是你要新增的！)
+  else if (val === 'resources') {
+    getResourceList()
   }
 })
 

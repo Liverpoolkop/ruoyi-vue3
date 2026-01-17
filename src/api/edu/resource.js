@@ -42,3 +42,12 @@ export function delResource(resourceId) {
     method: 'delete'
   })
 }
+
+// 下载资源
+export function downloadResource(resourceId) {
+  return request({
+    url: '/edu/resource/download/' + resourceId,
+    method: 'get',
+    responseType: 'blob', // ⚠️重点：必须告诉浏览器这是二进制流
+  })
+}

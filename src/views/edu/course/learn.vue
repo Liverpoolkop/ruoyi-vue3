@@ -711,7 +711,7 @@
   </el-dialog>
 
   <el-dialog v-model="resourceUploadOpen" title="上传教学资源" width="500px">
-    <el-form :model="resourceForm" ref="resourceRef" label-width="80px" :rules="resourceRules">
+    <el-form :model="resourceForm" ref="uploadResourceRef" label-width="80px" :rules="resourceRules">
       <el-form-item label="文件" prop="filePath">
         <file-upload
           v-model="resourceForm.filePath"
@@ -733,7 +733,7 @@
     </el-form>
     <template #footer>
       <el-button @click="resourceUploadOpen = false">取消</el-button>
-      <el-button type="primary" @click="submitResource">确定上传</el-button>
+      <el-button type="primary" @click="submitUploadResource">确定上传</el-button>
     </template>
   </el-dialog>
 
@@ -980,7 +980,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { getToken } from '@/utils/auth'
 import { getCourse, getCourseNotices, addCourseNotice, delCourseNotice, inviteCourse, getCourseStudents, addCourseStudents, removeCourseStudent, addCourseStudentsFromClass, updateCourse, delCourse } from '@/api/edu/course'
 import { getNestedList, addChapter, updateChapter, delChapter } from '@/api/system/chapter'
-import { listResource, addResource, updateResource, delResource } from '@/api/edu/resource'
 import { listHomework, addHomework, updateHomework, delHomework } from '@/api/edu/homework'
 import { addSubmission, updateSubmission, listSubmission } from '@/api/edu/submission'
 import { listClass } from '@/api/edu/class'
@@ -1053,6 +1052,9 @@ const chapterRules = {
 }
 
 const openChapterManage = () => {
+  chapterManageOpen.value = true
+  getChapterList()
+}
 
 const submitResource = () => {
     resourceRef.value.validate(valid => {
@@ -1083,6 +1085,25 @@ const submitResource = () => {
             }
         }
     })
+}
+
+const handleAddResource = (chapter) => {
+  resourceForm.value = {
+    courseId: courseId,
+    chapterId: chapter.chapterId,
+    resourceName: '',
+    url: '',
+    sort: 999
+  }
+  parentChapterName.value = chapter.chapterName
+  resourceEditOpen.value = true
+}
+
+const handleEditResource = (row) => {
+  resourceForm.value = { ...row }
+  const parent = findParentInTree(chapters.value, row.chapterId)
+  parentChapterName.value = parent ? parent.chapterName : '未知章节'
+  resourceEditOpen.value = true
 }
 
 const handleAddChapter = (parent) => {
@@ -1362,8 +1383,8 @@ function handleFileChange(val) {
 }
 
 // 4. 提交保存
-function submitResource() {
-  proxy.$refs["resourceRef"].validate(valid => {
+function submitUploadResource() {
+  proxy.$refs["uploadResourceRef"].validate(valid => {
     if (valid) {
       // 1. 获取完整路径中的文件名
       // 例如路径: /profile/upload/2026/01/09/测试文件A_202601091230.txt

@@ -27,14 +27,9 @@
 </template>
 
 <script setup>
-import { QuillEditor, Quill } from "@vueup/vue-quill";
+import { QuillEditor } from "@vueup/vue-quill";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
-import ImageResize from "quill-image-resize-module";
 import { getToken } from "@/utils/auth";
-
-// 兼容 quill-image-resize-module 需要 window.Quill
-window.Quill = Quill;
-Quill.register("modules/imageResize", ImageResize);
 
 const { proxy } = getCurrentInstance();
 
@@ -94,14 +89,6 @@ const options = ref({
       ["clean"],                                      // 清除文本格式
       ["link", "image"]                               // 链接、图片
     ],
-    imageResize: {
-      displayStyles: {
-        backgroundColor: "black",
-        border: "none",
-        color: "white"
-      },
-      modules: ["Resize", "DisplaySize", "Toolbar"]
-    }
   },
   placeholder: "请输入内容",
   readOnly: props.readOnly

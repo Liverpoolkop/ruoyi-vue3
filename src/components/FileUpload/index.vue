@@ -27,8 +27,11 @@
     <!-- 文件列表 -->
     <transition-group class="upload-file-list el-upload-list el-upload-list--text" name="el-fade-in-linear" tag="ul">
       <li :key="file.uid" class="el-upload-list__item ele-upload-list__item-content" v-for="(file, index) in fileList">
-        <el-link :href="`${baseUrl}${file.url}`" :underline="false" target="_blank">
-          <span class="el-icon-document"> {{ getFileName(file.name) }} </span>
+        <el-link :href="`${baseUrl}${file.url}`" :underline="false" target="_blank" class="upload-file-link">
+          <template #icon>
+            <el-icon><Document /></el-icon>
+          </template>
+          <span class="file-name"> {{ getFileName(file.name) }} </span>
         </el-link>
         <div class="ele-upload-list__item-content-action">
           <el-link :underline="false" @click="handleDelete(index)" type="danger">删除</el-link>
@@ -200,8 +203,28 @@ function listToString(list, separator) {
   justify-content: space-between;
   align-items: center;
   color: inherit;
+  padding: 0 10px;
+}
+.upload-file-link {
+  flex: 1;
+  /* 关键修复：min-width: 0 允许 flex item 收缩 */
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  justify-content: flex-start;
+  margin-right: 10px;
+}
+.file-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-left: 4px;
 }
 .ele-upload-list__item-content-action .el-link {
-  margin-right: 10px;
+  margin-right: 0;
+  /* 防止删除按钮被压缩 */
+  flex-shrink: 0;
 }
 </style>

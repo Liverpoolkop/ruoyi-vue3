@@ -71,31 +71,29 @@
                     <el-collapse accordion>
                       <el-collapse-item v-for="chapter in chapters" :key="chapter.chapterId" :title="chapter.chapterName" :name="chapter.chapterId">
                         
-                        <!-- 1. 显示当前章节下的视频 -->
-                        <div v-if="chapter.videos && chapter.videos.length > 0" class="chapter-videos">
-                          <div v-for="video in chapter.videos" :key="video.videoId" class="video-item">
-                            <el-icon><VideoPlay /></el-icon>
-                            <span class="video-name">{{ video.videoName }}</span>
-                            <el-tag size="small" type="info" v-if="video.isFree">免费</el-tag>
+                        <!-- 1. 显示当前章节下的资源 -->
+                        <div v-if="chapter.resources && chapter.resources.length > 0" class="chapter-resources">
+                          <div v-for="resource in chapter.resources" :key="resource.resourceId" class="resource-item">
+                            <el-icon><Document /></el-icon>
+                            <span class="resource-name">{{ resource.resourceName }}</span>
                           </div>
                         </div>
 
-                        <!-- 2. 显示子章节（小节）及其视频 -->
+                        <!-- 2. 显示子章节（小节）及其资源 -->
                         <div v-if="chapter.children && chapter.children.length > 0" class="sub-chapters">
                           <div v-for="subChapter in chapter.children" :key="subChapter.chapterId" class="sub-chapter-item">
                             <div class="sub-chapter-title">{{ subChapter.chapterName }}</div>
-                            <div v-if="subChapter.videos && subChapter.videos.length > 0" class="chapter-videos">
-                              <div v-for="video in subChapter.videos" :key="video.videoId" class="video-item">
-                                <el-icon><VideoPlay /></el-icon>
-                                <span class="video-name">{{ video.videoName }}</span>
-                                <el-tag size="small" type="info" v-if="video.isFree">免费</el-tag>
+                            <div v-if="subChapter.resources && subChapter.resources.length > 0" class="chapter-resources">
+                              <div v-for="resource in subChapter.resources" :key="resource.resourceId" class="resource-item">
+                                <el-icon><Document /></el-icon>
+                                <span class="resource-name">{{ resource.resourceName }}</span>
                               </div>
                             </div>
                           </div>
                         </div>
                         
                         <!-- 暂无内容 -->
-                        <el-empty v-if="(!chapter.videos || chapter.videos.length === 0) && (!chapter.children || chapter.children.length === 0)" description="暂无视频" :image-size="60" />
+                        <el-empty v-if="(!chapter.resources || chapter.resources.length === 0) && (!chapter.children || chapter.children.length === 0)" description="暂无内容" :image-size="60" />
                       </el-collapse-item>
                     </el-collapse>
                   </div>
@@ -147,6 +145,7 @@ import { getCourse, getJoinedCourseIds, joinCourse, quitCourse } from '@/api/edu
 import { getNestedList } from '@/api/system/chapter'
 import { getToken } from '@/utils/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Document, Check } from '@element-plus/icons-vue'
 import useAppStore from '@/store/modules/app'
 import useUserStore from '@/store/modules/user'
 import defaultImg from '@/assets/images/profile.jpg'
@@ -387,8 +386,8 @@ const getAvatarUrl = (avatar) => {
   }
 }
 
-.chapter-videos {
-  .video-item {
+.chapter-resources {
+  .resource-item {
     display: flex;
     align-items: center;
     padding: 10px;
@@ -405,7 +404,7 @@ const getAvatarUrl = (avatar) => {
       font-size: 16px;
     }
     
-    .video-name {
+    .resource-name {
       flex: 1;
       font-size: 14px;
     }

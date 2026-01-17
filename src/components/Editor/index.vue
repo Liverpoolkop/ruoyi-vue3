@@ -16,7 +16,6 @@
   </div>
   <div class="editor">
     <quill-editor
-      v-if="editorReady"
       ref="quillEditorRef"
       v-model:content="content"
       contentType="html"
@@ -30,12 +29,16 @@
 <script setup>
 import { QuillEditor, Quill } from "@vueup/vue-quill";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
+import ImageResize from "quill-image-resize-module";
 import { getToken } from "@/utils/auth";
+
+// 兼容 quill-image-resize-module 需要 window.Quill
+window.Quill = Quill;
+Quill.register("modules/imageResize", ImageResize);
 
 const { proxy } = getCurrentInstance();
 
 const quillEditorRef = ref();
-const editorReady = ref(false); // Add editorReady
 const uploadUrl = ref(import.meta.env.VITE_APP_BASE_API + "/common/upload"); // 上传的图片服务器地址
 const headers = ref({
   Authorization: "Bearer " + getToken()
@@ -90,7 +93,15 @@ const options = ref({
       [{ align: [] }],                                // 对齐方式
       ["clean"],                                      // 清除文本格式
       ["link", "image"]                               // 链接、图片
-    ]
+    ],
+    imageResize: {
+      displayStyles: {
+        backgroundColor: "black",
+        border: "none",
+        color: "white"
+      },
+      modules: ["Resize", "DisplaySize", "Toolbar"]
+    }
   },
   placeholder: "请输入内容",
   readOnly: props.readOnly
@@ -116,20 +127,17 @@ watch(() => props.modelValue, (v) => {
 
 // 如果设置了上传地址则自定义图片上传事件
 onMounted(() => {
-  editorReady.value = true;
-  nextTick(() => {
-    if (props.type == 'url' && quillEditorRef.value) {
-      let quill = quillEditorRef.value.getQuill();
-      let toolbar = quill.getModule("toolbar");
-      toolbar.addHandler("image", (value) => {
-        if (value) {
-          proxy.$refs.uploadRef.click();
-        } else {
-          quill.format("image", false);
-        }
-      });
-    }
-  });
+  if (props.type == 'url') {
+    let quill = quillEditorRef.value.getQuill();
+    let toolbar = quill.getModule("toolbar");
+    toolbar.addHandler("image", (value) => {
+      if (value) {
+        proxy.$refs.uploadRef.click();
+      } else {
+        quill.format("image", false);
+      }
+    });
+  }
 });
 
 // 上传前校检格式和大小

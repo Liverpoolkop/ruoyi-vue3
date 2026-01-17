@@ -304,6 +304,39 @@
           <el-empty description="暂无考试" />
         </div>
 
+        <!-- Experiment -->
+        <div v-else-if="activeMenu === 'experiment'" class="content-wrapper">
+          <div class="content-header">
+            <h2>实验</h2>
+            <el-button v-if="isTeacher" type="primary" size="small" icon="Plus" @click="openExperimentDialog()">发布实验</el-button>
+          </div>
+
+          <div v-if="experimentList && experimentList.length > 0" class="experiment-list">
+            <el-card v-for="exp in experimentList" :key="exp.experimentId" class="experiment-card" shadow="hover">
+              <div class="exp-header">
+                <div class="exp-title">{{ exp.experimentName }}</div>
+                <el-tag :type="exp.status === '1' ? 'success' : 'info'" size="small">
+                  {{ exp.status === '1' ? '已发布' : '草稿' }}
+                </el-tag>
+              </div>
+              <div class="exp-desc">{{ exp.description || '暂无描述' }}</div>
+              <div class="exp-footer">
+                <div class="exp-meta">
+                  <span class="exp-time">创建时间: {{ exp.createTime }}</span>
+                  <span v-if="exp.deadline" class="exp-time">截止时间: {{ exp.deadline }}</span>
+                </div>
+                <div class="exp-actions">
+                  <el-button v-if="isTeacher" type="primary" link size="small" @click="openExperimentDialog(exp)">编辑</el-button>
+                  <el-button v-if="isTeacher" type="warning" link size="small" @click="viewExperimentSubmissions(exp)">查看提交</el-button>
+                  <el-button v-if="isTeacher" type="danger" link size="small" @click="handleDeleteExperiment(exp)">删除</el-button>
+                  <el-button v-if="!isTeacher" type="success" size="small" @click="goToExperimentCoding(exp.experimentId)">进入实验</el-button>
+                </div>
+              </div>
+            </el-card>
+          </div>
+          <el-empty v-else description="暂无实验" />
+        </div>
+
         <!-- Members -->
         <div v-else-if="activeMenu === 'members'" class="content-wrapper">
            <div class="content-header">
@@ -971,6 +1004,74 @@
         </div>
       </template>
     </el-dialog>
+
+  <!-- Experiment Dialog -->
+  <el-dialog v-model="experimentOpen" :title="experimentForm.experimentId ? '编辑实验' : '发布实验'" width="600px">
+    <el-form :model="experimentForm" ref="experimentRef" label-width="80px" :rules="experimentRules">
+      <el-form-item label="实验名称" prop="experimentName">
+        <el-input v-model="experimentForm.experimentName" placeholder="请输入实验名称" />
+      </el-form-item>
+      <el-form-item label="实验描述" prop="description">
+        <el-input v-model="experimentForm.description" type="textarea" :rows="4" placeholder="请输入实验描述和要求" />
+      </el-form-item>
+      <el-form-item label="测试输入" prop="testInput">
+        <el-input v-model="experimentForm.testInput" type="textarea" :rows="3" placeholder="程序的标准输入（可选）" />
+      </el-form-item>
+      <el-form-item label="期望输出" prop="testOutput">
+        <el-input v-model="experimentForm.testOutput" type="textarea" :rows="3" placeholder="程序的期望输出（用于判题）" />
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-radio-group v-model="experimentForm.status">
+          <el-radio label="0">草稿</el-radio>
+          <el-radio label="1">发布</el-radio>
+        </el-radio-group>
+      </el-form-item>
+      <el-form-item label="截止时间">
+        <el-date-picker
+          v-model="experimentForm.deadline"
+          type="datetime"
+          placeholder="选择截止时间"
+          value-format="YYYY-MM-DD HH:mm:ss"
+          style="width: 100%"
+        />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="experimentOpen = false">取消</el-button>
+      <el-button type="primary" @click="submitExperiment">保存</el-button>
+    </template>
+  </el-dialog>
+
+  <!-- Submission Records Dialog -->
+  <el-dialog v-model="submissionDialogOpen" :title="`提交记录 - ${currentExperimentName}`" width="900px">
+    <el-table :data="submissionList" stripe style="width: 100%">
+      <el-table-column prop="studentId" label="学生ID" width="100" />
+      <el-table-column prop="result" label="评测结果" width="130">
+        <template #default="{ row }">
+          <el-tag :type="getSubmissionTagType(row.result)" size="small">
+            {{ translateResult(row.result) }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="submitTime" label="提交时间" width="180" />
+      <el-table-column prop="runTime" label="运行时间" width="100" />
+      <el-table-column prop="memoryUsed" label="内存" width="100" />
+      <el-table-column label="代码" width="80">
+        <template #default="{ row }">
+          <el-popover trigger="click" width="500">
+            <template #reference>
+              <el-button link type="primary" size="small">查看</el-button>
+            </template>
+            <pre style="max-height: 400px; overflow: auto; background: #f5f5f5; padding: 10px; font-family: monospace;">{{ row.code }}</pre>
+          </el-popover>
+        </template>
+      </el-table-column>
+      <el-table-column prop="stdout" label="输出" min-width="150" show-overflow-tooltip />
+    </el-table>
+    <template #footer>
+      <el-button @click="submissionDialogOpen = false">关闭</el-button>
+    </template>
+  </el-dialog>
   </div>
 </template>
 
@@ -995,6 +1096,7 @@ import defaultAvatar from '@/assets/images/profile.jpg'
 
 
 import { listResource, addResource, delResource,updateResource,downloadResource } from "@/api/edu/resource";
+import { listExperiment, addExperiment, updateExperiment, delExperiment, getAllSubmissions } from "@/api/edu/experiment";
 
 const { proxy } = getCurrentInstance()
 const route = useRoute()
@@ -1483,6 +1585,118 @@ function handleDeleteResource(row) {
 
 
 
+// ==================== 实验模块 ====================
+const experimentList = ref([])
+const experimentOpen = ref(false)
+const experimentForm = ref({})
+const experimentRef = ref(null)
+const experimentRules = {
+  experimentName: [{ required: true, message: '请输入实验名称', trigger: 'blur' }]
+}
+
+// 获取实验列表
+function getExperimentList() {
+  listExperiment({ courseId: course.value.courseId }).then(res => {
+    let rows = res.rows || []
+    // 学生只能看到已发布的实验
+    if (!isTeacher.value) {
+      rows = rows.filter(item => item.status === '1')
+    }
+    experimentList.value = rows
+  })
+}
+
+// 打开实验弹窗
+function openExperimentDialog(exp) {
+  if (exp) {
+    experimentForm.value = { ...exp }
+  } else {
+    experimentForm.value = {
+      courseId: course.value.courseId,
+      experimentName: '',
+      description: '',
+      testInput: '',
+      testOutput: '',
+      status: '0',
+      deadline: null
+    }
+  }
+  experimentOpen.value = true
+}
+
+// 保存实验
+function submitExperiment() {
+  experimentRef.value.validate(valid => {
+    if (valid) {
+      if (experimentForm.value.experimentId) {
+        updateExperiment(experimentForm.value).then(() => {
+          ElMessage.success('更新成功')
+          experimentOpen.value = false
+          getExperimentList()
+        })
+      } else {
+        addExperiment(experimentForm.value).then(() => {
+          ElMessage.success('创建成功')
+          experimentOpen.value = false
+          getExperimentList()
+        })
+      }
+    }
+  })
+}
+
+// 删除实验
+function handleDeleteExperiment(exp) {
+  ElMessageBox.confirm('确认删除该实验吗?', '提示', { type: 'warning' }).then(() => {
+    delExperiment(exp.experimentId).then(() => {
+      ElMessage.success('删除成功')
+      getExperimentList()
+    })
+  })
+}
+
+// 跳转到实验编码页面
+function goToExperimentCoding(experimentId) {
+  router.push(`/edu/experiment/coding/${experimentId}`)
+}
+
+// ==================== 教师查看提交记录 ====================
+const submissionDialogOpen = ref(false)
+const submissionList = ref([])
+const currentExperimentName = ref('')
+
+function viewExperimentSubmissions(exp) {
+  currentExperimentName.value = exp.experimentName
+  getAllSubmissions(exp.experimentId).then(res => {
+    submissionList.value = res.data || []
+    submissionDialogOpen.value = true
+  })
+}
+
+// 评测结果翻译
+const resultMap = {
+  'Accepted': '通过',
+  'Wrong Answer': '答案错误',
+  'Compilation Error': '编译错误',
+  'Runtime Error': '运行时错误',
+  'Time Limit Exceeded': '超时',
+  'Memory Limit Exceeded': '内存超限'
+}
+
+function translateResult(result) {
+  return resultMap[result] || result
+}
+
+function getSubmissionTagType(result) {
+  if (result === 'Accepted') return 'success'
+  if (result === 'Wrong Answer' || result?.includes('Error')) return 'danger'
+  if (result === 'Time Limit Exceeded') return 'warning'
+  return 'info'
+}
+
+// ==================== 实验模块结束 ====================
+
+
 // Invite Logic
 const inviteOpen = ref(false)
 const inviteResultOpen = ref(false)
@@ -1528,6 +1742,7 @@ const menuItems = computed(() => {
     { key: 'resources', label: '教学资源', icon: 'FolderOpened' },
     // --- 新增代码 END ---
     { key: 'homework', label: '测验与作业', icon: 'EditPen' },
+    { key: 'experiment', label: '实验', icon: 'Cpu' },
     { key: 'exam', label: '考试', icon: 'Monitor' }
   ]
   if (isTeacher.value) {
@@ -1550,9 +1765,13 @@ watch(activeMenu, (val) => {
   } else if (val === 'homework') {
     loadHomeworks()
   }
-  // 4. 教学资源 (这是你要新增的！)
+  // 4. 教学资源
   else if (val === 'resources') {
     getResourceList()
+  }
+  // 5. 实验
+  else if (val === 'experiment') {
+    getExperimentList()
   }
 })
 
@@ -2905,5 +3124,55 @@ const getFileName = (url) => {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* 实验列表样式 */
+.experiment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.experiment-card {
+  .exp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .exp-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #303133;
+  }
+
+  .exp-desc {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 15px;
+    line-height: 1.6;
+    max-height: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .exp-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+  }
+
+  .exp-time {
+    font-size: 12px;
+    color: #999;
+  }
+
+  .exp-actions {
+    display: flex;
+    gap: 10px;
+  }
 }
 </style>

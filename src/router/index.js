@@ -134,6 +134,11 @@ export const constantRoutes = [
     hidden: true
   },
   {
+    path: '/edu/experiment/coding/:id(\\d+)',
+    component: () => import('@/views/edu/experiment/coding'),
+    hidden: true
+  },
+  {
     path: '/edu/class',
     component: Layout,
     hidden: true,

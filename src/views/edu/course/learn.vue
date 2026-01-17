@@ -52,46 +52,39 @@
             <div v-if="chapters.length > 0">
               <div v-for="chapter in chapters" :key="chapter.chapterId" class="chapter-block">
                 <div class="chapter-title">
-                  <span class="chapter-idx">{{ chapter.sort }}</span>
                   {{ chapter.chapterName }}
                 </div>
                 <div class="section-list">
-                  <!-- 1. Chapter Videos -->
-                  <div v-if="chapter.videos && chapter.videos.length > 0">
-                    <div v-for="video in chapter.videos" :key="video.videoId" class="section-item">
+                  <!-- 1. Chapter Resources -->
+                  <div v-if="chapter.resources && chapter.resources.length > 0">
+                    <div v-for="resource in chapter.resources" :key="resource.resourceId" class="section-item" @click="handlePlayResource(resource)">
                       <div class="section-icon">
-                        <el-tag size="small" effect="plain">视频</el-tag>
+                        <el-tag size="small" effect="plain">{{ getResourceType(resource.url) }}</el-tag>
                       </div>
                       <div class="section-info">
-                        <div class="section-title">{{ video.videoName }}</div>
-                      </div>
-                      <div class="section-action">
-                        <el-icon><VideoPlay /></el-icon>
+                        <div class="section-title">{{ resource.resourceName }}</div>
                       </div>
                     </div>
                   </div>
 
-                  <!-- 2. Sub-Chapters and their Videos -->
+                  <!-- 2. Sub-Chapters and their Resources -->
                   <div v-if="chapter.children && chapter.children.length > 0">
                     <div v-for="subChapter in chapter.children" :key="subChapter.chapterId" class="sub-chapter-block">
                       <div class="sub-chapter-header">{{ subChapter.chapterName }}</div>
-                      <div v-if="subChapter.videos && subChapter.videos.length > 0">
-                        <div v-for="video in subChapter.videos" :key="video.videoId" class="section-item">
+                      <div v-if="subChapter.resources && subChapter.resources.length > 0">
+                        <div v-for="resource in subChapter.resources" :key="resource.resourceId" class="section-item" @click="handlePlayResource(resource)">
                           <div class="section-icon">
-                            <el-tag size="small" effect="plain">视频</el-tag>
+                            <el-tag size="small" effect="plain">{{ getResourceType(resource.url) }}</el-tag>
                           </div>
                           <div class="section-info">
-                            <div class="section-title">{{ video.videoName }}</div>
-                          </div>
-                          <div class="section-action">
-                            <el-icon><VideoPlay /></el-icon>
+                            <div class="section-title">{{ resource.resourceName }}</div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div v-if="(!chapter.videos || chapter.videos.length === 0) && (!chapter.children || chapter.children.length === 0)" class="empty-section">本章暂无内容</div>
+                  <div v-if="(!chapter.resources || chapter.resources.length === 0) && (!chapter.children || chapter.children.length === 0)" class="empty-section">本章暂无内容</div>
                 </div>
               </div>
             </div>
@@ -137,8 +130,94 @@
         <div v-else-if="activeMenu === 'homework'" class="content-wrapper">
           <div class="content-header">
             <h2>测验与作业</h2>
+            <el-button v-if="isTeacher" type="primary" size="small" icon="Plus" @click="openHomeworkDialog">发布作业</el-button>
           </div>
-          <el-empty description="暂无作业" />
+          
+          <div v-if="homeworkList && homeworkList.length > 0" class="homework-list">
+             <div v-for="hw in homeworkList" :key="hw.id" :class="['homework-item', 'status-' + hw.status]">
+                <div class="homework-left-border"></div>
+                <div class="homework-main">
+                   <div class="homework-header">
+                       <span class="homework-title">{{ hw.title }}</span>
+                       <el-tag size="small" :type="getHomeworkStatusType(hw.status)" effect="plain" round>
+                         {{ getHomeworkStatusText(hw.status) }}
+                       </el-tag>
+                   </div>
+                   
+                   <div class="homework-meta">
+                       <div class="meta-item">
+                           <el-icon><Calendar /></el-icon>
+                           <span>发布: {{ hw.createTime }}</span>
+                       </div>
+                       <div class="meta-item deadline" v-if="hw.deadline">
+                           <el-icon><Warning /></el-icon>
+                           <span>截止: {{ hw.deadline }}</span>
+                       </div>
+                   </div>
+
+                   <!-- Content preview removed as per request -->
+                </div>
+                
+                <div class="homework-right">
+                   <template v-if="isTeacher">
+                       <div class="action-buttons">
+                           <el-button type="primary" link icon="Edit" @click="handleEditHomework(hw)">编辑</el-button>
+                           <el-button type="success" link icon="View" @click="handleViewSubmissions(hw)">查看提交</el-button>
+                           <el-button type="danger" link icon="Delete" @click="handleDelHomework(hw)">删除</el-button>
+                       </div>
+                   </template>
+                   <template v-else>
+                       <div class="student-status-area">
+                           <div v-if="isSubmitted(hw)" class="status-indicator submitted">
+                               <el-icon class="status-icon"><Check /></el-icon>
+                               <div class="status-text">
+                                   <div class="main-text">{{ getSubmissionStatusText(hw) }}</div>
+                                   <div v-if="getSubmissionGrade(hw)" class="grade-badge">{{ getSubmissionGrade(hw) }}分</div>
+                               </div>
+                           </div>
+                           <div v-else class="status-indicator not-submitted">
+                               <div class="status-dot"></div>
+                               <span class="main-text">未提交</span>
+                           </div>
+                       </div>
+                       
+                       <div class="student-actions">
+                           <el-tooltip :content="getSubmitTooltip(hw)" :disabled="canSubmit(hw) || (isSubmitted(hw) && canSubmit(hw))" placement="top">
+                               <span class="action-wrapper">
+                                   <el-button 
+                                    v-if="!isSubmitted(hw)"
+                                    type="primary" 
+                                    round
+                                    icon="Upload" 
+                                    :disabled="!canSubmit(hw)"
+                                    @click="openSubmitDialog(hw)"
+                                   >提交作业</el-button>
+                                   
+                                   <el-button 
+                                    v-else-if="canSubmit(hw)"
+                                    type="warning" 
+                                    plain
+                                    round
+                                    icon="Edit" 
+                                    @click="openSubmitDialog(hw)"
+                                   >修改作业</el-button>
+                                   
+                                   <el-button 
+                                    v-else
+                                    type="info" 
+                                    plain
+                                    round
+                                    icon="View" 
+                                    @click="openViewDialog(hw)"
+                                   >查看详情</el-button>
+                               </span>
+                           </el-tooltip>
+                       </div>
+                   </template>
+                </div>
+             </div>
+          </div>
+          <el-empty v-else description="暂无作业" />
         </div>
 
         <!-- Exam -->
@@ -262,48 +341,83 @@
       </div>
       
       <el-tree
-        :data="chapters"
-        node-key="chapterId"
+        :data="treeData"
+        node-key="id"
         default-expand-all
         :expand-on-click-node="false"
-        :props="{ label: 'chapterName', children: 'children' }"
+        :props="{ label: 'label', children: 'children' }"
         class="chapter-tree"
+        draggable
+        :allow-drop="allowDrop"
+        :allow-drag="allowDrag"
+        @node-drop="handleNodeDrop"
       >
         <template #default="{ node, data }">
           <div class="custom-tree-node">
             <span class="node-label">
-              <span class="node-sort">[{{ data.sort }}]</span>
+              <el-icon v-if="data.type === 'chapter'" class="mr-1" style="vertical-align: middle;"><Folder /></el-icon>
+              <el-icon v-else class="mr-1" style="vertical-align: middle; color: #409EFF"><Document /></el-icon>
               {{ node.label }}
             </span>
             <span class="node-actions">
-              <el-button
-                type="primary"
-                link
-                size="small"
-                icon="EditPen"
-                @click.stop="handleEditChapter(data)"
-              >
-                编辑
-              </el-button>
-              <el-button
-                v-if="data.parentId === 0"
-                type="success"
-                link
-                size="small"
-                icon="DocumentAdd"
-                @click.stop="handleAddChapter(data)"
-              >
-                添加节
-              </el-button>
-              <el-button
-                type="danger"
-                link
-                size="small"
-                icon="DeleteFilled"
-                @click.stop="handleDeleteChapter(data)"
-              >
-                删除
-              </el-button>
+              <template v-if="data.type === 'chapter'">
+                  <el-button
+                    type="primary"
+                    link
+                    size="small"
+                    icon="EditPen"
+                    @click.stop="handleEditChapter(data.raw)"
+                  >
+                    编辑
+                  </el-button>
+                  <el-button
+                    type="success"
+                    link
+                    size="small"
+                    icon="DocumentAdd"
+                    @click.stop="handleAddChapter(data.raw)"
+                  >
+                    添加子章
+                  </el-button>
+                  <el-button
+                    type="warning"
+                    link
+                    size="small"
+                    icon="Document"
+                    @click.stop="handleAddResource(data.raw)"
+                  >
+                    添加资源
+                  </el-button>
+                  <el-button
+                    type="danger"
+                    link
+                    size="small"
+                    icon="DeleteFilled"
+                    @click.stop="handleDeleteChapter(data.raw)"
+                  >
+                    删除
+                  </el-button>
+              </template>
+              <template v-else>
+                   <el-button
+                    type="primary"
+                    link
+                    size="small"
+                    icon="EditPen"
+                    @click.stop="handleEditResource(data.raw)"
+                  >
+                    编辑
+                  </el-button>
+                  <el-button
+                    type="danger"
+                    link
+                    size="small"
+                    icon="DeleteFilled"
+                    @click.stop="handleDeleteResource(data.raw)"
+                  >
+                    删除
+                  </el-button>
+              </template>
             </span>
           </div>
         </template>
@@ -319,13 +433,37 @@
         <el-form-item label="章节名称" prop="chapterName">
           <el-input v-model="chapterForm.chapterName" placeholder="请输入章节名称" />
         </el-form-item>
-        <el-form-item label="显示排序" prop="sort">
-          <el-input-number v-model="chapterForm.sort" :min="0" :max="999" />
-        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="chapterEditOpen = false">取消</el-button>
         <el-button type="primary" @click="submitChapter">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- Resource Edit Dialog -->
+    <el-dialog v-model="resourceEditOpen" :title="resourceForm.resourceId ? '编辑资源' : '添加资源'" width="600px">
+      <el-form :model="resourceForm" ref="resourceRef" label-width="80px" :rules="resourceRules">
+        <el-form-item label="所属章节">
+           <el-input :model-value="parentChapterName" disabled />
+        </el-form-item>
+        <el-form-item label="资源名称" prop="resourceName">
+          <el-input v-model="resourceForm.resourceName" placeholder="请输入资源名称" />
+        </el-form-item>
+        <el-form-item label="资源文件" prop="url">
+           <FileUpload 
+             v-model="resourceForm.url" 
+             :limit="1" 
+             :file-type="['mp4', 'webm', 'ogg', 'mov', 'avi', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif']"
+             :is-show-tip="false"
+           />
+           <div class="el-upload__tip" style="line-height: 1.5; margin-top: 5px;">
+             支持视频(mp4/webm等)、文档(pdf/doc/ppt等)和图片格式，大小不超过5MB
+           </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="resourceEditOpen = false">取消</el-button>
+        <el-button type="primary" @click="submitResource">保存</el-button>
       </template>
     </el-dialog>
 
@@ -482,6 +620,241 @@
         <el-button type="primary" @click="copyCode">复制</el-button>
       </template>
     </el-dialog>
+
+    <!-- Homework Publish/Edit Dialog -->
+    <el-dialog v-model="homeworkOpen" :title="homeworkForm.id ? '编辑作业' : '发布作业'" width="1200px" append-to-body top="5vh">
+      <div class="homework-publish-container">
+        <div class="publish-left">
+          <el-form :model="homeworkForm" ref="homeworkRef" label-position="top" :rules="homeworkRules">
+            <el-form-item label="作业标题" prop="title">
+              <el-input v-model="homeworkForm.title" placeholder="请输入作业标题" />
+            </el-form-item>
+            <el-row :gutter="20">
+              <el-col :span="8">
+                <el-form-item label="状态" prop="status">
+                  <el-select v-model="homeworkForm.status" style="width: 100%">
+                    <el-option label="草稿" value="0" />
+                    <el-option label="已发布" value="1" />
+                    <el-option label="已结束" value="2" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="开始时间" prop="startTime">
+                  <el-date-picker
+                    v-model="homeworkForm.startTime"
+                    type="datetime"
+                    placeholder="选择开始时间"
+                    value-format="YYYY-MM-DD HH:mm:ss"
+                    style="width: 100%"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="截止时间" prop="deadline">
+                  <el-date-picker
+                    v-model="homeworkForm.deadline"
+                    type="datetime"
+                    placeholder="选择截止时间"
+                    value-format="YYYY-MM-DD HH:mm:ss"
+                    style="width: 100%"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-form-item label="作业内容" prop="content" class="editor-item">
+              <Editor v-model="homeworkForm.content" :min-height="400" />
+            </el-form-item>
+          </el-form>
+        </div>
+        
+        <div class="publish-right">
+          <div class="preview-header">
+            <span class="preview-label">内容预览</span>
+            <el-tag type="info" size="small">实时</el-tag>
+          </div>
+          <div class="content-preview-box modern-scroll">
+            <div class="preview-title">{{ homeworkForm.title || '作业标题' }}</div>
+            <div class="preview-meta">
+              <span class="meta-item"><el-icon><Calendar /></el-icon> {{ homeworkForm.startTime || '未设置开始时间' }}</span>
+              <span class="meta-item deadline"><el-icon><Timer /></el-icon> {{ homeworkForm.deadline || '未设置截止时间' }}</span>
+            </div>
+            <div class="preview-body ql-editor" v-html="homeworkForm.content || '<p class=\'placeholder\'>暂无内容...</p>'"></div>
+          </div>
+        </div>
+      </div>
+      
+      <template #footer>
+        <div class="dialog-footer" style="text-align: center;">
+          <el-button @click="homeworkOpen = false" size="large">取 消</el-button>
+          <el-button type="primary" @click="submitHomework" style="width: 200px;" size="large">立即发布</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- Homework Submission Dialog -->
+    <el-dialog v-model="submitOpen" :title="submitForm.id ? '修改作业' : '提交作业'" width="800px" custom-class="submission-dialog" append-to-body>
+      <!-- Homework Detail Section -->
+      <div class="homework-detail-section">
+          <div class="detail-title">
+              <span class="label">作业题目：</span>
+              {{ currentHomework?.title }}
+              <el-tag v-if="currentHomework?.deadline" type="danger" size="small" style="margin-left: 10px;">
+                  截止时间：{{ currentHomework.deadline }}
+              </el-tag>
+          </div>
+          <div class="detail-content">
+              <div class="label">作业要求：</div>
+              <div class="content-box" v-html="currentHomework?.content"></div>
+          </div>
+      </div>
+
+      <el-divider />
+
+      <el-form :model="submitForm" ref="submitRef" label-width="80px" :rules="submitRules" class="submission-form">
+        <el-form-item label="内容描述" prop="content">
+          <el-input v-model="submitForm.content" type="textarea" :rows="6" placeholder="请输入作业内容或描述" />
+        </el-form-item>
+        <el-form-item label="附件/图片" prop="fileUrl">
+          <FileUpload v-model="submitForm.fileUrl" :limit="5" :file-type="['doc', 'docx', 'pdf', 'zip', 'rar', 'jpg', 'png', 'jpeg', 'gif']" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="submitOpen = false">取消</el-button>
+          <el-button type="primary" @click="submitSubmission">提交</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- View Submission Dialog (Score Card Style) -->
+    <el-dialog v-model="viewSubmissionOpen" title="作业反馈单" width="650px" custom-class="submission-card-dialog" append-to-body>
+      <div class="score-card">
+          <!-- Header / Score -->
+          <div class="score-header" :class="{'is-graded': viewSubmissionData.status === '2'}">
+              <div class="score-main">
+                  <span class="label">最终得分</span>
+                  <div class="score-value">
+                      {{ viewSubmissionData.status === '2' ? viewSubmissionData.grade : '-' }}
+                      <span class="suffix" v-if="viewSubmissionData.status === '2'">分</span>
+                  </div>
+              </div>
+              <div class="status-badge">
+                  <el-tag :type="viewSubmissionData.status === '2' ? 'success' : 'primary'" effect="dark" size="large">
+                      {{ viewSubmissionData.status === '2' ? '已批改' : '已提交' }}
+                  </el-tag>
+              </div>
+          </div>
+
+          <!-- Timeline Info -->
+          <div class="submission-info">
+              <div class="info-row">
+                  <span class="label">提交时间：</span>
+                  <span class="value">{{ viewSubmissionData.createTime }}</span>
+              </div>
+              <div class="info-row" v-if="viewSubmissionData.status === '2'">
+                  <span class="label">批改时间：</span>
+                  <span class="value">{{ viewSubmissionData.updateTime }}</span>
+              </div>
+          </div>
+
+          <el-divider border-style="dashed" />
+
+          <!-- Student Content -->
+          <div class="content-section">
+              <div class="section-title">我的作业</div>
+              <div class="content-box">
+                  <div class="text-content">{{ viewSubmissionData.content || '（无文本内容）' }}</div>
+                  
+                  <!-- Merged Display for FileUrl (Images + Files) -->
+                  <div v-if="viewSubmissionData.fileUrl" class="attachments-container">
+                      <template v-for="(url, index) in viewSubmissionData.fileUrl.split(',')" :key="index">
+                          <!-- Image Display -->
+                          <div v-if="isImageUrl(url)" class="image-item" style="display: inline-block; margin-right: 10px; margin-bottom: 10px;">
+                              <el-image 
+                                :src="url" 
+                                :preview-src-list="[url]"
+                                style="width: 100px; height: 100px; border-radius: 4px;"
+                                fit="cover"
+                              />
+                          </div>
+                          <!-- File Download -->
+                          <div v-else class="file-item" style="margin-bottom: 5px;">
+                              <el-link :href="url" target="_blank" type="primary" icon="Paperclip">
+                                  {{ getFileName(url) }}
+                              </el-link>
+                          </div>
+                      </template>
+                  </div>
+              </div>
+          </div>
+
+          <!-- Teacher Feedback -->
+          <div class="content-section feedback-section" v-if="viewSubmissionData.status === '2'">
+              <div class="section-title">教师评语</div>
+              <div class="feedback-box">
+                  {{ viewSubmissionData.gradeComment || '（暂无评语）' }}
+              </div>
+          </div>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="viewSubmissionOpen = false" round>关闭</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- Resource Preview Dialog -->
+    <el-dialog 
+      v-model="resourcePlayOpen" 
+      :title="currentResource.resourceName" 
+      width="80%" 
+      top="5vh"
+      destroy-on-close 
+      center 
+      append-to-body
+      class="resource-preview-dialog"
+    >
+      <div class="preview-container" :class="{'is-video': isVideoUrl(currentResource.url)}">
+         <video 
+            v-if="isVideoUrl(currentResource.url)" 
+            :src="getFullUrl(currentResource.url)" 
+            controls 
+            autoplay
+            style="width: 100%; max-height: 75vh; display: block;"
+         >
+            您的浏览器不支持视频播放。
+         </video>
+         <el-image
+            v-else-if="isImageUrl(currentResource.url)"
+            :src="getFullUrl(currentResource.url)"
+            :preview-src-list="[getFullUrl(currentResource.url)]"
+            fit="contain"
+            style="max-height: 75vh; max-width: 100%;"
+         />
+         <iframe
+            v-else-if="isPdfUrl(currentResource.url) || isTextUrl(currentResource.url)"
+            :src="getFullUrl(currentResource.url)"
+            style="width: 100%; height: 75vh; border: none; background: #fff;"
+         ></iframe>
+         <iframe
+            v-else-if="isOfficeUrl(currentResource.url)"
+            :src="'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(getFullUrl(currentResource.url))"
+            style="width: 100%; height: 75vh; border: none; background: #fff;"
+         ></iframe>
+         <div v-else class="resource-preview">
+            <el-icon size="60"><Document /></el-icon>
+            <p style="margin-top: 20px;">该资源格式暂不支持在线预览，请下载后查看</p>
+         </div>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="downloadResource(currentResource.url)" icon="Download">
+            下载资源
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -491,12 +864,17 @@ import { useRoute, useRouter } from 'vue-router'
 import { getToken } from '@/utils/auth'
 import { getCourse, getCourseNotices, addCourseNotice, delCourseNotice, inviteCourse, getCourseStudents, addCourseStudents, removeCourseStudent, addCourseStudentsFromClass, updateCourse, delCourse } from '@/api/edu/course'
 import { getNestedList, addChapter, updateChapter, delChapter } from '@/api/system/chapter'
+import { listResource, addResource, updateResource, delResource } from '@/api/edu/resource'
+import { listHomework, addHomework, updateHomework, delHomework } from '@/api/edu/homework'
+import { addSubmission, updateSubmission, listSubmission } from '@/api/edu/submission'
 import { listClass } from '@/api/edu/class'
 import { getUserBrief } from '@/api/edu/class'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { VideoPlay, Share, User, Search, InfoFilled, Delete, Setting, Edit, FolderAdd, DocumentAdd, EditPen, DeleteFilled } from '@element-plus/icons-vue'
+import { VideoPlay, Share, User, Search, InfoFilled, Delete, Setting, Edit, FolderAdd, DocumentAdd, EditPen, DeleteFilled, View, Upload, Plus, VideoCamera, Calendar, Timer, Check, Warning, Document, Download, Folder } from '@element-plus/icons-vue'
 import useUserStore from '@/store/modules/user'
 import ImageUpload from '@/components/ImageUpload/index.vue'
+import FileUpload from '@/components/FileUpload/index.vue'
+import Editor from '@/components/Editor/index.vue'
 import defaultImg from '@/assets/images/profile.jpg'
 import defaultAvatar from '@/assets/images/profile.jpg'
 
@@ -508,6 +886,11 @@ const userStore = useUserStore()
 const courseId = route.params.id
 const course = ref({})
 const chapters = ref([])
+const treeData = ref([])
+const homeworkList = ref([])
+const mySubmissions = ref([])
+const viewSubmissionOpen = ref(false)
+const viewSubmissionData = ref({})
 const notices = ref([])
 const students = ref([])
 const activeMenu = ref('courseware')
@@ -520,26 +903,125 @@ const noticeRules = {
   noticeContent: [{ required: true, message: '请输入内容', trigger: 'blur' }]
 }
 
+// Homework Management
+const homeworkOpen = ref(false)
+const homeworkForm = ref({})
+const homeworkRef = ref(null)
+const homeworkRules = {
+  title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
+  content: [{ required: true, message: '请输入内容', trigger: 'blur' }]
+}
+
+// Submission Management
+const currentHomework = ref({})
+const submitOpen = ref(false)
+const submitForm = ref({})
+const submitRef = ref(null)
+const submitRules = {
+  content: [{ required: true, message: '请输入内容', trigger: 'blur' }]
+}
+
 // Chapter Management
 const chapterManageOpen = ref(false)
+const resourcePlayOpen = ref(false)
+const currentResource = ref({})
 const chapterEditOpen = ref(false)
 const chapterForm = ref({})
 const chapterRef = ref(null)
 const parentChapterName = ref('')
 const chapterRules = {
-  chapterName: [{ required: true, message: '请输入章节名称', trigger: 'blur' }],
-  sort: [{ required: true, message: '请输入排序', trigger: 'blur' }]
+  chapterName: [{ required: true, message: '请输入章节名称', trigger: 'blur' }]
 }
 
 const openChapterManage = () => {
+  chapterManageOpen.value = true
+  getChapterList()
+}
 
+// Resource Management
+const resourceEditOpen = ref(false)
+const resourceForm = ref({})
+const resourceRef = ref(null)
+const resourceRules = {
+  resourceName: [{ required: true, message: '请输入资源名称', trigger: 'blur' }],
+  url: [{ required: true, message: '请上传资源文件', trigger: 'blur' }]
+}
+
+const handleAddResource = (chapter) => {
+    resourceForm.value = {
+        courseId: courseId,
+        chapterId: chapter.chapterId,
+        sort: 999, // Default to end
+        resourceName: '',
+        url: ''
+    }
+    parentChapterName.value = chapter.chapterName
+    resourceEditOpen.value = true
+}
+
+const handleEditResource = (resource) => {
+    resourceForm.value = { ...resource }
+    // Find parent chapter name
+    const findChapter = (list) => {
+        for(let c of list) {
+            if(c.chapterId === resource.chapterId) return c
+            if(c.children) {
+                const found = findChapter(c.children)
+                if(found) return found
+            }
+        }
+        return null
+    }
+    const parent = findChapter(chapters.value)
+    parentChapterName.value = parent ? parent.chapterName : '未知章节'
+    resourceEditOpen.value = true
+}
+
+const handleDeleteResource = (resource) => {
+    ElMessageBox.confirm('确认删除该资源吗？', '警告', { type: 'warning' }).then(() => {
+        delResource(resource.resourceId).then(() => {
+            ElMessage.success('删除成功')
+            getChapterList()
+        })
+    })
+}
+
+const submitResource = () => {
+    resourceRef.value.validate(valid => {
+        if(valid) {
+            // Auto-detect type from URL extension
+            const ext = getExt(resourceForm.value.url)
+            let type = 'file'
+            if(['mp4', 'webm', 'ogg', 'mov', 'avi'].includes(ext)) type = 'video'
+            else if(['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext)) type = 'image'
+            else if(['pdf'].includes(ext)) type = 'pdf'
+            else if(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) type = 'office'
+            else if(['txt'].includes(ext)) type = 'text'
+            
+            resourceForm.value.type = type
+
+            if(resourceForm.value.resourceId) {
+                updateResource(resourceForm.value).then(() => {
+                    ElMessage.success('更新成功')
+                    resourceEditOpen.value = false
+                    getChapterList()
+                })
+            } else {
+                addResource(resourceForm.value).then(() => {
+                    ElMessage.success('添加成功')
+                    resourceEditOpen.value = false
+                    getChapterList()
+                })
+            }
+        }
+    })
 }
 
 const handleAddChapter = (parent) => {
   chapterForm.value = {
     courseId: courseId,
     parentId: parent ? parent.chapterId : 0,
-    sort: 0,
+    sort: 999, // Default to end
     chapterName: ''
   }
   parentChapterName.value = parent ? parent.chapterName : '顶级章节'
@@ -569,7 +1051,7 @@ const findParentInTree = (tree, id) => {
 }
 
 const handleDeleteChapter = (row) => {
-  ElMessageBox.confirm('确认删除该章节吗？如果有子章节或关联视频也会被影响！', '警告', {
+  ElMessageBox.confirm('确认删除该章节吗？如果有子章节或关联资源也会被影响！', '警告', {
     type: 'warning'
   }).then(() => {
     delChapter(row.chapterId).then(() => {
@@ -596,6 +1078,106 @@ const submitChapter = () => {
         })
       }
     }
+  })
+}
+
+const handlePlayResource = (resource) => {
+  currentResource.value = resource
+  resourcePlayOpen.value = true
+}
+
+const getExt = (url) => {
+  if (!url) return ''
+  let cleanUrl = url.split('?')[0].split('#')[0]
+  return cleanUrl.substring(cleanUrl.lastIndexOf('.') + 1).toLowerCase()
+}
+
+const isVideoUrl = (url) => {
+  const ext = getExt(url)
+  return ['mp4', 'webm', 'ogg', 'mov', 'avi'].includes(ext)
+}
+
+const getResourceType = (url) => {
+    if(isVideoUrl(url)) return '视频'
+    if(isImageUrl(url)) return '图片'
+    if(isPdfUrl(url)) return 'PDF'
+    if(isOfficeUrl(url)) return '文档'
+    return '文件'
+}
+
+const getFullUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http') || url.startsWith('https')) return url
+  return import.meta.env.VITE_APP_BASE_API + url
+}
+
+const downloadResource = (url) => {
+  window.open(getFullUrl(url), '_blank')
+}
+
+// Drag and Drop Logic
+const allowDrag = (draggingNode) => {
+  return true // All nodes can be dragged
+}
+
+const allowDrop = (draggingNode, dropNode, type) => {
+  // Prevent dropping resource into resource
+  if (dropNode.data.type === 'resource' && type === 'inner') {
+    return false
+  }
+  // Prevent dropping chapter into resource
+  if (dropNode.data.type === 'resource' && draggingNode.data.type === 'chapter') {
+      return false
+  }
+  return true
+}
+
+const handleNodeDrop = (draggingNode, dropNode, dropType, ev) => {
+  const draggedData = draggingNode.data
+  const dropData = dropNode.data
+  
+  // Calculate new parent
+  let newParentId = 0
+  if (dropType === 'inner') {
+    newParentId = dropData.raw.chapterId
+  } else {
+    // sibling
+    if (dropData.type === 'chapter') {
+        newParentId = dropData.raw.parentId || 0
+    } else {
+        newParentId = dropData.raw.chapterId // if sibling of resource, parent is resource's chapter
+    }
+  }
+  
+  // Get siblings to update sort order
+  const siblings = (dropType === 'inner') ? (dropData.children || []) : dropNode.parent.childNodes.map(n => n.data)
+  
+  // Update sort for all siblings
+  const promises = []
+  siblings.forEach((node, index) => {
+      let p;
+      if (node.type === 'chapter') {
+          p = updateChapter({
+              chapterId: node.raw.chapterId,
+              parentId: newParentId,
+              sort: index
+          })
+      } else if (node.type === 'resource') {
+          p = updateResource({
+              resourceId: node.raw.resourceId,
+              chapterId: newParentId, // Resource must belong to a chapter
+              sort: index
+          })
+      }
+      if(p) promises.push(p)
+  })
+  
+  Promise.all(promises).then(() => {
+      ElMessage.success('排序更新成功')
+      getChapterList() // Refresh to ensure consistency
+  }).catch(() => {
+      ElMessage.error('排序更新失败，请刷新重试')
+      getChapterList()
   })
 }
 
@@ -669,6 +1251,8 @@ watch(activeMenu, (val) => {
     loadNotices()
   } else if (val === 'members') {
     loadStudents()
+  } else if (val === 'homework') {
+    loadHomeworks()
   }
 })
 
@@ -695,7 +1279,42 @@ const getCourseInfo = () => {
 const getChapterList = () => {
   getNestedList(courseId).then(res => {
     chapters.value = res.data || []
+    buildTreeData()
   })
+}
+
+const buildTreeData = () => {
+    // Convert chapters + resources to unified tree
+    const process = (list) => {
+        return list.map(c => {
+            const node = {
+                id: 'c_' + c.chapterId,
+                label: c.chapterName,
+                type: 'chapter',
+                raw: c,
+                children: []
+            }
+            
+            // Add sub-chapters
+            if (c.children && c.children.length > 0) {
+                node.children.push(...process(c.children))
+            }
+            
+            // Add resources
+            if (c.resources && c.resources.length > 0) {
+                const resourceNodes = c.resources.map(v => ({
+                    id: 'r_' + v.resourceId,
+                    label: v.resourceName,
+                    type: 'resource',
+                    raw: v
+                }))
+                node.children.push(...resourceNodes)
+            }
+            
+            return node
+        })
+    }
+    treeData.value = process(chapters.value)
 }
 
 const loadNotices = () => {
@@ -818,6 +1437,184 @@ const submitAddStudents = () => {
   }
 }
 
+const loadHomeworks = () => {
+  listHomework({ courseId: courseId }).then(res => {
+    homeworkList.value = res.rows || []
+    if (!isTeacher.value) {
+        loadMySubmissions()
+    }
+  })
+}
+
+const loadMySubmissions = () => {
+    listSubmission({}).then(res => {
+        mySubmissions.value = res.rows || []
+    })
+}
+
+const isSubmitted = (hw) => {
+    return mySubmissions.value.some(s => s.homeworkId === hw.id)
+}
+
+const getSubmission = (hw) => {
+    return mySubmissions.value.find(s => s.homeworkId === hw.id)
+}
+
+const getSubmissionStatusText = (hw) => {
+    const sub = getSubmission(hw)
+    if (!sub) return '未提交'
+    if (sub.status === '2') return '已批改'
+    return '已提交'
+}
+
+const getSubmissionStatusType = (hw) => {
+    const sub = getSubmission(hw)
+    if (!sub) return 'info'
+    if (sub.status === '2') return 'success'
+    return 'primary'
+}
+
+const getSubmissionGrade = (hw) => {
+    const sub = getSubmission(hw)
+    if (sub && sub.status === '2') return sub.grade
+    return null
+}
+
+const openHomeworkDialog = () => {
+  homeworkForm.value = { 
+    courseId: courseId,
+    status: '0',
+    startTime: null,
+    deadline: null
+  }
+  homeworkOpen.value = true
+}
+
+const handleEditHomework = (hw) => {
+  homeworkForm.value = { ...hw }
+  homeworkOpen.value = true
+}
+
+const getHomeworkStatusText = (status) => {
+  if (status === '0') return '草稿'
+  if (status === '1') return '已发布'
+  if (status === '2') return '已结束'
+  return '未知'
+}
+
+const getHomeworkStatusType = (status) => {
+  if (status === '0') return 'info'
+  if (status === '1') return 'success'
+  if (status === '2') return 'danger'
+  return 'info'
+}
+
+const canSubmit = (hw) => {
+    if (hw.status !== '1') return false
+    const now = new Date()
+    if (hw.startTime && new Date(hw.startTime) > now) return false
+    if (hw.deadline && new Date(hw.deadline) < now) return false
+    return true
+}
+
+const getSubmitTooltip = (hw) => {
+    if (hw.status === '0') return '作业未发布'
+    if (hw.status === '2') return '作业已结束'
+    const now = new Date()
+    if (hw.startTime && new Date(hw.startTime) > now) return '作业尚未开始'
+    if (hw.deadline && new Date(hw.deadline) < now) return '作业已截止'
+    return ''
+}
+
+const handleDelHomework = (hw) => {
+    ElMessageBox.confirm('确认删除该作业吗？', '提示', { type: 'warning' }).then(() => {
+        delHomework(hw.id).then(() => {
+            ElMessage.success('删除成功')
+            loadHomeworks()
+        })
+    })
+}
+
+const submitHomework = () => {
+    homeworkRef.value.validate(valid => {
+        if(valid) {
+            if (homeworkForm.value.id) {
+                updateHomework(homeworkForm.value).then(() => {
+                    ElMessage.success('更新成功')
+                    homeworkOpen.value = false
+                    loadHomeworks()
+                })
+            } else {
+                addHomework(homeworkForm.value).then(() => {
+                    ElMessage.success('发布成功')
+                    homeworkOpen.value = false
+                    loadHomeworks()
+                })
+            }
+        }
+    })
+}
+
+const handleViewSubmissions = (hw) => {
+    router.push('/edu/homework/submission/' + hw.id)
+}
+
+const openViewDialog = (hw) => {
+    const sub = getSubmission(hw)
+    if (sub) {
+        viewSubmissionData.value = sub
+        viewSubmissionOpen.value = true
+    }
+}
+
+const openSubmitDialog = (hw) => {
+    currentHomework.value = hw
+    const sub = getSubmission(hw)
+    if (sub) {
+        // Merge imageUrl into fileUrl for display and editing
+        let combinedUrl = sub.fileUrl || ''
+        if (sub.imageUrl) {
+            combinedUrl = combinedUrl ? (combinedUrl + ',' + sub.imageUrl) : sub.imageUrl
+        }
+        
+        submitForm.value = {
+            id: sub.id,
+            homeworkId: hw.id,
+            content: sub.content,
+            fileUrl: combinedUrl,
+            imageUrl: '' // Clear imageUrl as we merged it
+        }
+    } else {
+        submitForm.value = {
+            homeworkId: hw.id,
+            content: '',
+            fileUrl: '',
+            imageUrl: ''
+        }
+    }
+    submitOpen.value = true
+}
+
+const submitSubmission = () => {
+    submitRef.value.validate(valid => {
+        if(valid) {
+            if (submitForm.value.id) {
+                updateSubmission(submitForm.value).then(() => {
+                    ElMessage.success('更新成功')
+                    submitOpen.value = false
+                    loadMySubmissions()
+                })
+            } else {
+                addSubmission(submitForm.value).then(() => {
+                    ElMessage.success('提交成功')
+                    submitOpen.value = false
+                    loadMySubmissions()
+                })
+            }
+        }
+    })
+}
+
 // Course Settings Logic
 const editCourseOpen = ref(false)
 const editCourseForm = ref({})
@@ -865,6 +1662,31 @@ const getStatusText = (status) => {
   if (status === '1') return '已结束'
   if (status === '2') return '未开始'
   return '未知'
+}
+
+const isImageUrl = (url) => {
+    const ext = getExt(url)
+    return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext)
+}
+
+const isPdfUrl = (url) => {
+    const ext = getExt(url)
+    return ['pdf'].includes(ext)
+}
+
+const isTextUrl = (url) => {
+    const ext = getExt(url)
+    return ['txt'].includes(ext)
+}
+
+const isOfficeUrl = (url) => {
+    const ext = getExt(url)
+    return ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)
+}
+
+const getFileName = (url) => {
+    if (!url) return '附件'
+    return url.substring(url.lastIndexOf('/') + 1)
 }
 </script>
 
@@ -1036,6 +1858,7 @@ const getStatusText = (status) => {
     background: #f5f7fa;
     padding: 2px 6px;
     border-radius: 4px;
+    
   }
   
   .user-cell {
@@ -1401,5 +2224,386 @@ const getStatusText = (status) => {
   .notice-action {
     flex-shrink: 0;
   }
+}
+
+.homework-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  
+  .homework-item {
+      background: #fff;
+      border: 1px solid #ebeef5;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: stretch;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      overflow: hidden;
+      position: relative;
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        border-color: #dcdfe6;
+      }
+
+      &.status-0 .homework-left-border { background: #909399; } /* Draft */
+      &.status-1 .homework-left-border { background: #409EFF; } /* Published */
+      &.status-2 .homework-left-border { background: #F56C6C; } /* Closed */
+      
+      .homework-left-border {
+          width: 4px;
+          background: #dcdfe6;
+      }
+      
+      .homework-main {
+        flex: 1;
+        padding: 20px 0 20px 20px;
+        margin-right: 20px;
+        display: flex;
+        flex-direction: column;
+        
+        .homework-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            
+            .homework-title {
+              font-size: 18px;
+              font-weight: 600;
+              color: #303133;
+              margin: 0;
+            }
+        }
+        
+        .homework-meta {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            
+            .meta-item {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                font-size: 13px;
+                color: #606266;
+                background: #f4f4f5;
+                padding: 4px 10px;
+                border-radius: 4px;
+                
+                &.deadline {
+                    color: #e6a23c;
+                    background: #fdf6ec;
+                }
+            }
+        }
+        
+        .homework-content-preview {
+          color: #606266;
+          font-size: 14px;
+          line-height: 1.6;
+          max-height: 80px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+        }
+      }
+      
+      .homework-right {
+         padding: 20px;
+         display: flex;
+         flex-direction: column;
+         justify-content: center;
+         align-items: flex-end;
+         border-left: 1px solid #f2f6fc;
+         min-width: 200px;
+         background: #fafafa;
+         
+         .action-buttons {
+             display: flex;
+             gap: 8px;
+         }
+         
+         .student-status-area {
+             margin-bottom: 15px;
+             text-align: right;
+             
+             .status-indicator {
+                 display: flex;
+                 align-items: center;
+                 justify-content: flex-end;
+                 gap: 8px;
+                 
+                 &.submitted {
+                     .status-icon {
+                         color: #67c23a;
+                         font-size: 24px;
+                     }
+                     .status-text {
+                         text-align: left;
+                         .main-text {
+                             font-size: 14px;
+                             font-weight: bold;
+                             color: #67c23a;
+                         }
+                         .grade-badge {
+                             font-size: 12px;
+                             color: #f56c6c;
+                             font-weight: bold;
+                             }
+                     }
+                 }
+                 
+                 &.not-submitted {
+                     .status-dot {
+                         width: 8px;
+                         height: 8px;
+                         background: #909399;
+                         border-radius: 50%;
+                     }
+                     .main-text {
+                         color: #909399;
+                         font-size: 14px;
+                     }
+                 }
+             }
+         }
+      }
+    }
+    
+    /* View Submission Dialog Styles */
+    .score-card {
+        padding: 0 10px;
+        
+        .score-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f0f2f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            
+            &.is-graded {
+                background: linear-gradient(135deg, #f0f9eb 0%, #e1f3d8 100%);
+                
+                .score-value { color: #67c23a; }
+            }
+            
+            .score-main {
+                display: flex;
+                flex-direction: column;
+                
+                .label {
+                    font-size: 13px;
+                    color: #909399;
+                    margin-bottom: 4px;
+                }
+                
+                .score-value {
+                    font-size: 36px;
+                    font-weight: bold;
+                    color: #303133;
+                    line-height: 1;
+                    
+                    .suffix {
+                        font-size: 16px;
+                        font-weight: normal;
+                        color: #606266;
+                        margin-left: 4px;
+                    }
+                }
+            }
+        }
+        
+        .submission-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 15px;
+            
+            .info-row {
+                font-size: 13px;
+                color: #606266;
+                
+                .label { color: #909399; }
+            }
+        }
+        
+        .content-section {
+            margin-top: 20px;
+            
+            .section-title {
+                font-size: 15px;
+                font-weight: bold;
+                color: #303133;
+                margin-bottom: 10px;
+                border-left: 3px solid #409EFF;
+                padding-left: 10px;
+            }
+            
+            .content-box {
+                background: #f9fafc;
+                padding: 15px;
+                border-radius: 4px;
+                border: 1px solid #e4e7ed;
+                
+                .text-content {
+                    white-space: pre-wrap;
+                    color: #606266;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    margin-bottom: 10px;
+                }
+            }
+            
+            &.feedback-section {
+                .section-title { border-color: #67c23a; }
+                
+                .feedback-box {
+                    background: #f0f9eb;
+                    border-color: #e1f3d8;
+                    padding: 15px;
+                    border-radius: 4px;
+                    color: #67c23a;
+                    font-size: 14px;
+                }
+            }
+        }
+  }
+}
+
+// Homework Publish Split Layout
+.homework-publish-container {
+  display: flex;
+  height: 600px; /* Fixed height for split view */
+  border-top: 1px solid #ebeef5;
+  border-bottom: 1px solid #ebeef5;
+  margin: -20px -20px 0; /* Negate dialog padding */
+  
+  .publish-left {
+    flex: 1;
+    width: 50%;
+    min-width: 0; /* Prevent flex item from expanding due to content */
+    padding: 20px;
+    overflow-y: auto;
+    
+    .editor-item {
+      margin-bottom: 0;
+      :deep(.el-form-item__content) {
+        display: block; /* Ensure editor takes full width */
+      }
+    }
+  }
+  
+  .publish-right {
+    flex: 1;
+    width: 50%;
+    min-width: 0; /* Prevent flex item from expanding due to content */
+    background: #fcfcfc;
+    border-left: 1px solid #e4e7ed;
+    display: flex;
+    flex-direction: column;
+    
+    .preview-header {
+      padding: 10px 20px;
+      border-bottom: 1px solid #ebeef5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+      
+      .preview-label {
+        font-weight: bold;
+        color: #303133;
+        font-size: 14px;
+      }
+    }
+    
+    .content-preview-box {
+      flex: 1;
+      padding: 30px;
+      overflow-y: auto;
+      
+      .preview-title {
+        font-size: 22px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 10px;
+        text-align: center;
+      }
+      
+      .preview-meta {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-bottom: 30px;
+        color: #909399;
+        font-size: 13px;
+        border-bottom: 1px dashed #ebeef5;
+        padding-bottom: 15px;
+        
+        .meta-item {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          
+          &.deadline { color: #e6a23c; }
+        }
+      }
+      
+      .preview-body {
+        font-size: 15px;
+        line-height: 1.8;
+        color: #333;
+        
+        /* Mimic Quill editor output styles */
+        p { margin-bottom: 1em; }
+        img { max-width: 100%; height: auto; display: block; margin: 10px auto; }
+        
+        .placeholder {
+          color: #ccc;
+          text-align: center;
+          margin-top: 50px;
+          font-style: italic;
+        }
+      }
+    }
+  }
+}
+
+/* Custom Scrollbar for preview */
+.modern-scroll {
+  &::-webkit-scrollbar { width: 6px; height: 6px; }
+  &::-webkit-scrollbar-thumb { background: #dcdfe6; border-radius: 3px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+}
+
+.preview-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  overflow: hidden;
+  
+  &.is-video {
+    background: #000;
+  }
+}
+
+.resource-preview {
+  color: #909399;
+  padding: 40px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 </style>

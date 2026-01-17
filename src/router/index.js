@@ -48,6 +48,11 @@ export const constantRoutes = [
     hidden: true
   },
   {
+    path: '/portal/exam/:id(\\d+)',
+    component: () => import('@/views/portal/exam/detail'),
+    hidden: true
+  },
+  {
     path: '/system/course/index/:id(\\d+)',
     component: () => import('@/views/edu/course/detail'),
     hidden: true
@@ -212,6 +217,11 @@ export const dynamicRoutes = [
         meta: { title: '调度日志', activeMenu: '/monitor/job' }
       }
     ]
+  },
+  {
+    path: '/edu/homework/submission/:homeworkId(\\d+)',
+    component: () => import('@/views/portal/homework/submission.vue'),
+    hidden: true
   },
   {
     path: '/tool/gen-edit',

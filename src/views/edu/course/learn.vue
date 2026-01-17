@@ -1200,9 +1200,6 @@ const getFullUrl = (url) => {
   return import.meta.env.VITE_APP_BASE_API + url
 }
 
-const downloadResource = (url) => {
-  window.open(getFullUrl(url), '_blank')
-}
 
 // Drag and Drop Logic
 const allowDrag = (draggingNode) => {

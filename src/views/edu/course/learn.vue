@@ -439,6 +439,15 @@
           </div>
         </div>
 
+        <!-- knowledge -->
+        <div v-else-if="activeMenu === 'knowledge'" class="content-wrapper">
+          <div class="content-header">
+            <h2>图谱管理</h2>
+          </div>
+          <Knowledge :courseData="courseData"></Knowledge>
+        </div>
+
+
       </div>
     </div>
     
@@ -1076,6 +1085,7 @@
 </template>
 
 <script setup>
+import Knowledge from "@/views/edu/knowledge/index.vue";
 import { ref, onMounted, computed, watch, getCurrentInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getToken } from '@/utils/auth'
@@ -1102,6 +1112,8 @@ const { proxy } = getCurrentInstance()
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+
+const courseData=ref({});// 知识图谱数据
 
 const courseId = route.params.id
 const course = ref({})
@@ -1748,6 +1760,7 @@ const menuItems = computed(() => {
   if (isTeacher.value) {
     items.push({ key: 'members', label: '人员管理', icon: 'User' })
     items.push({ key: 'settings', label: '课程设置', icon: 'Setting' })
+    items.push({ key: 'knowledge', label: '图谱管理', icon: 'Share' })
   }
   return items
 })
@@ -1785,6 +1798,7 @@ onMounted(() => {
 const getCourseInfo = () => {
   getCourse(courseId).then(res => {
     course.value = res.data || {}
+    courseData.value=course.value //知识图谱
     const teachers = res.teachers || []
     const userId = userStore.id
     isTeacher.value = teachers.some(t => String(t.userId) === String(userId)) || (userStore.roles && userStore.roles.includes('admin'))

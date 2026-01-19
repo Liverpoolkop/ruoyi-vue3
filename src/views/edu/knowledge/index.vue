@@ -10,7 +10,24 @@
 <!--               @keyup.enter="handleQuery"-->
 <!--            />-->
 <!--         </el-form-item>-->
-<!--         <el-form-item label="章节" prop="chapterId">-->
+<!--         <el-form-item label="课程" prop="courseId" v-if="!props.courseData.courseId">
+        <el-select
+            v-model="queryParams.courseId"
+            placeholder="请选择课程"
+            clearable
+            filterable
+            style="width: 200px"
+            @change="handleQueryCourseChange"
+        >
+          <el-option
+              v-for="item in courseOptions"
+              :key="item.courseId"
+              :label="item.courseName"
+              :value="item.courseId"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="章节" prop="chapterId">-->
 <!--            <el-select v-model="queryParams.chapterId" clearable style="width: 200px">-->
 <!--              <el-option-->
 <!--                  v-for="item in chapterOptions"-->
@@ -200,7 +217,7 @@
 <!--import KnowledgeGraph from "@/components/Knowledge/knowledgeGraph.vue";-->
 <!--import {treeSelect} from "@/api/edu/tree.js";-->
 <!--import {listCourse} from "@/api/edu/course.js";-->
-<!--import {listChapter} from "@/api/system/chapter.js";-->
+<!--import {getNestedList, listChapter} from "@/api/system/chapter.js";-->
 
 <!--const { proxy } = getCurrentInstance();-->
 <!--const { sys_normal_disable } = proxy.useDict("sys_normal_disable");-->
@@ -218,7 +235,7 @@
 <!--const courseOptions = ref([]);-->
 <!--const knowledgeTreeOptions = ref([]);// 知识点树选项-->
 <!--const open = ref(false);-->
-<!--const loading = ref(true);// 遮罩层-->
+<!--const loading = ref(false);// 遮罩层-->
 <!--const showSearch = ref(true);-->
 <!--const ids = ref([]);// 选中数组-->
 <!--const single = ref(true);// 非单个禁用-->
@@ -396,12 +413,6 @@
 <!--    })-->
 <!--  }-->
 <!--}-->
-<!--function getChapterList() {-->
-<!--  let courseId = courseData.value.courseId;-->
-<!--  listChapter({ courseId }).then(response => {-->
-<!--    chapterOptions.value = response.rows;-->
-<!--  });-->
-<!--}-->
 <!--/** 查询知识点树结构 */-->
 <!--function getKnowledgeTree() {-->
 <!--  treeSelect({ courseId: form.courseId }).then(response => {-->
@@ -464,7 +475,7 @@
 
 
 <template>
-  <div class="app-container">
+  <div class="knowledge-container">
     <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch">
       <el-form-item label="知识点名称" prop="knowledgeName">
         <el-input
@@ -476,14 +487,17 @@
         />
       </el-form-item>
       <el-form-item label="章节" prop="chapterId">
-        <el-select v-model="queryParams.chapterId" clearable style="width: 200px">
-          <el-option
-              v-for="item in chapterOptions"
-              :key="item.chapterId"
-              :label="item.chapterName"
-              :value="item.chapterId"
-          />
-        </el-select>
+        <el-tree-select
+            v-model="queryParams.chapterId"
+            :data="chapterOptions"
+            :props="{ value: 'value', label: 'label', children: 'children' }"
+            value-key="value"
+            placeholder="请选择章节"
+            check-strictly
+            clearable
+            :render-after-expand="false"
+            style="width: 200px"
+        />
       </el-form-item>
       <el-form-item label="难度" prop="difficultyLevel">
         <el-select v-model="queryParams.difficultyLevel" placeholder="请选择难度" clearable>
@@ -508,60 +522,31 @@
       </el-form-item>
     </el-form>
 
-    <!-- 课程信息卡片 -->
-    <div class="course-info-card" v-if="courseData.courseName">
-      <el-card shadow="never">
-        <div class="course-header">
-          <div class="course-left">
-            <img :src="courseData.courseImg || defaultCourseImg" class="course-img" />
-            <div class="course-info">
-              <h3>{{ courseData.courseName }}</h3>
-              <p class="course-desc">{{ courseData.courseDesc }}</p>
-              <div class="course-stats">
-                  <span class="stat-item">
-                    <el-icon><Collection /></el-icon>
-                    知识点数量: {{ total }}
-                  </span>
-                <span v-if="courseData.lessonHours" class="stat-item">
-                    <el-icon><Timer /></el-icon>
-                    课时: {{ courseData.lessonHours }} 小时
-                  </span>
-              </div>
-            </div>
-          </div>
-          <div class="course-actions">
-            <el-button type="primary" @click="handleViewCourseGraph">
-              <el-icon><Connection /></el-icon>
-              查看课程知识图谱
-            </el-button>
-            <el-button type="success" @click="handleBatchManage">
-              <el-icon><Setting /></el-icon>
-              批量管理关系
-            </el-button>
-          </div>
-        </div>
-      </el-card>
-    </div>
-
     <el-row :gutter="10" class="mb8">
+      <el-col :span="1.5">
+        <el-button
+            type="primary"
+            plain
+            icon="Sort"
+            @click="handleViewTree"
+        >查看知识树</el-button>
+      </el-col>
+      <el-col :span="1.5">
+        <el-button
+            type="success"
+            plain
+            icon="Connection"
+            @click="handleViewCourseGraph"
+        >查看图谱</el-button>
+      </el-col>
       <el-col :span="1.5">
         <el-button
             type="primary"
             plain
             icon="Plus"
             @click="handleAdd"
-            v-hasPermi="['knowledge:knowledge:add']"
+            v-if="isTeacher"
         >新增知识点</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-            type="success"
-            plain
-            icon="Edit"
-            :disabled="single"
-            @click="handleUpdate"
-            v-hasPermi="['knowledge:knowledge:edit']"
-        >修改</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -570,7 +555,7 @@
             icon="Delete"
             :disabled="multiple"
             @click="handleDelete"
-            v-hasPermi="['knowledge:knowledge:remove']"
+            v-if="isTeacher"
         >删除</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -579,7 +564,7 @@
             plain
             icon="Download"
             @click="handleExport"
-            v-hasPermi="['knowledge:knowledge:export']"
+            v-if="isTeacher"
         >导出知识点</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -588,17 +573,8 @@
             plain
             icon="Upload"
             @click="handleImport"
-            v-hasPermi="['knowledge:knowledge:import']"
+            v-if="isTeacher"
         >导入知识点</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-            type="primary"
-            plain
-            icon="Sort"
-            @click="handleViewTree"
-            :disabled="!knowledgeTreeOptions.length"
-        >查看知识树</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
@@ -609,7 +585,6 @@
         <template #default="scope">
           <div class="knowledge-name-cell">
             <span class="name-text">{{ scope.row.knowledgeName }}</span>
-            <span v-if="scope.row.knowledgeCode" class="code-badge">{{ scope.row.knowledgeCode }}</span>
           </div>
         </template>
       </el-table-column>
@@ -651,10 +626,11 @@
       </el-table-column>
       <el-table-column label="操作" width="220" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['knowledge:knowledge:edit']" title="修改"></el-button>
-          <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['knowledge:knowledge:remove']" title="删除"></el-button>
-          <el-button link type="success" icon="Connection" @click="handleViewKnowledgeGraph(scope.row)" title="查看关联图谱"></el-button>
-          <el-button link type="warning" icon="Document" @click="handleViewDetail(scope.row)" title="查看详情"></el-button>
+          <div class="action-buttons">
+            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-if="isTeacher" title="修改"></el-button>
+            <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-if="isTeacher" title="删除"></el-button>
+            <el-button link type="warning" icon="Document" @click="handleViewDetail(scope.row)" title="查看详情"></el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -677,19 +653,23 @@
           <el-input v-model="form.knowledgeCode" placeholder="请输入知识点编码" />
         </el-form-item>
         <el-form-item label="所属章节" prop="chapterId">
-          <el-select v-model="form.chapterId" placeholder="请选择章节" style="width: 100%">
-            <el-option
-                v-for="item in chapterOptions"
-                :key="item.chapterId"
-                :label="item.chapterName"
-                :value="item.chapterId"
-            />
-          </el-select>
+          <el-tree-select
+              v-model="form.chapterId"
+              :data="chapterOptions"
+              :props="{ value: 'value', label: 'label', children: 'children' }"
+              value-key="value"
+              placeholder="请选择章节"
+              check-strictly
+              clearable
+              :render-after-expand="false"
+              style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="父知识点" prop="parentId">
           <el-tree-select
               v-model="form.parentId"
               :data="knowledgeTreeOptions"
+              :props="{ label: 'knowledgeName', value: 'knowledgeId', children: 'children' }"
               check-strictly
               :render-after-expand="false"
               placeholder="请选择父知识点"
@@ -704,7 +684,31 @@
           </el-select>
         </el-form-item>
         <el-form-item label="关键词" prop="keywords">
-          <el-input v-model="form.keywords" placeholder="请输入关键词，多个用逗号分隔" />
+          <div class="tag-group">
+            <el-tag
+                v-for="tag in keywordTags"
+                :key="tag"
+                class="mx-1"
+                closable
+                :disable-transitions="false"
+                @close="handleClose(tag)"
+            >
+              {{ tag }}
+            </el-tag>
+            <el-input
+                v-if="inputVisible"
+                ref="InputRef"
+                v-model="inputValue"
+                class="ml-1 w-20"
+                size="small"
+                style="width: 100px"
+                @keyup.enter="handleInputConfirm"
+                @blur="handleInputConfirm"
+            />
+            <el-button v-else class="button-new-tag ml-1" size="small" @click="showInput">
+              + New Tag
+            </el-button>
+          </div>
         </el-form-item>
         <el-form-item label="知识点内容" prop="content">
           <Editor v-model="form.content" :min-height="192" />
@@ -730,7 +734,7 @@
     <!-- 知识图谱对话框 -->
     <el-dialog v-model="graphOpen" width="90%" top="5vh" append-to-body>
       <div style="height: 80vh;">
-        <KnowledgeGraph :graphData="graphData" v-if="graphOpen" />
+        <KnowledgeGraph :graphData="graphData" :courseName="courseData.courseName" v-if="graphOpen" />
       </div>
     </el-dialog>
 
@@ -776,7 +780,8 @@
             action="#"
             :auto-upload="false"
             :on-change="handleFileChange"
-            :show-file-list="false"
+            :show-file-list="true"
+            :limit="1"
             accept=".xlsx,.xls"
         >
           <el-icon class="el-icon--upload"><upload-filled /></el-icon>
@@ -814,13 +819,15 @@
             node-key="knowledgeId"
             default-expand-all
             :expand-on-click-node="false"
+            @node-click="handleNodeClick"
         >
           <template #default="{ node, data }">
                <span class="custom-tree-node">
                  <span>{{ node.label }}</span>
                  <span class="tree-node-actions">
-                   <el-button link type="primary" size="small" @click="() => handleUpdate(data)">编辑</el-button>
-                   <el-button link type="danger" size="small" @click="() => handleDelete(data)">删除</el-button>
+                   <el-button link type="primary" size="small" @click.stop="() => handleAddChild(data)" v-if="isTeacher">添加子节点</el-button>
+                   <el-button link type="primary" size="small" @click.stop="() => handleUpdate(data)" v-if="isTeacher">编辑</el-button>
+                   <el-button link type="danger" size="small" @click.stop="() => handleDelete(data)" v-if="isTeacher">删除</el-button>
                  </span>
                </span>
           </template>
@@ -838,15 +845,20 @@ import {
   getKnowledge,
   getKnowledgeGraphByCourseId,
   listKnowledge,
-  updateKnowledge
+  updateKnowledge,
+  importKnowledge
 } from "@/api/edu/knowledge.js";
 import KnowledgeGraph from "@/components/Knowledge/knowledgeGraph.vue";
 import {treeSelect} from "@/api/edu/tree.js";
-import {listChapter} from "@/api/system/chapter.js";
+import {listCourse} from "@/api/edu/course.js";
+import {getNestedList, listChapter} from "@/api/system/chapter.js";
 import { Collection, Connection, Setting, Timer, UploadFilled, Download } from '@element-plus/icons-vue'
+
+import useUserStore from '@/store/modules/user'
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");
+const userStore = useUserStore();
 
 const props = defineProps({
   courseData: {
@@ -865,13 +877,14 @@ const props = defineProps({
 // 响应式数据
 const knowledgeList = ref([]);
 const chapterOptions = ref([]);
+const courseOptions = ref([]);
 const knowledgeTreeOptions = ref([]);// 知识点树选项
 const open = ref(false);
 const graphOpen = ref(false);
 const detailOpen = ref(false);
 const importOpen = ref(false);
 const treeOpen = ref(false);
-const loading = ref(true);
+const loading = ref(false);
 const showSearch = ref(true);
 const ids = ref([]);
 const single = ref(true);
@@ -882,6 +895,35 @@ const graphData = ref({});
 const currentKnowledge = ref({});
 const defaultCourseImg = 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
 const uploadFile = ref(null);
+const isTeacher = ref(false);
+
+const keywordTags = ref([]);
+const inputVisible = ref(false);
+const inputValue = ref('');
+const InputRef = ref(null);
+
+const handleClose = (tag) => {
+  keywordTags.value.splice(keywordTags.value.indexOf(tag), 1);
+  form.value.keywords = keywordTags.value.join(',');
+}
+
+const showInput = () => {
+  inputVisible.value = true;
+  nextTick(() => {
+    InputRef.value.input.focus();
+  })
+}
+
+const handleInputConfirm = () => {
+  if (inputValue.value) {
+    if (!keywordTags.value.includes(inputValue.value)) {
+      keywordTags.value.push(inputValue.value);
+      form.value.keywords = keywordTags.value.join(',');
+    }
+  }
+  inputVisible.value = false;
+  inputValue.value = '';
+}
 
 const data = reactive({
   form: {},
@@ -912,8 +954,25 @@ watch(() => props.courseData, (newVal) => {
     queryParams.value.courseId = newVal.courseId;
     form.value.courseId = newVal.courseId;
     initData();
+    checkTeacherRole(newVal.courseId);
   }
 }, { immediate: true, deep: true });
+
+function checkTeacherRole(courseId) {
+  if (!courseId) return;
+  // Use getCourse to fetch detailed information including teachers
+  import("@/api/edu/course").then(({ getCourse }) => {
+    getCourse(courseId).then(response => {
+      const teachers = response.teachers || [];
+      const userId = userStore.id;
+      // Check if current user is one of the teachers or is an admin
+      const isCourseTeacher = teachers.some(t => t.userId === userId);
+      // Also consider admin roles
+      const isAdmin = userStore.roles.includes('admin');
+      isTeacher.value = isCourseTeacher || isAdmin;
+    });
+  });
+}
 
 /** 初始化数据 */
 function initData() {
@@ -946,22 +1005,41 @@ function getList() {
 function getChapterList() {
   if (!queryParams.value.courseId) return;
 
-  listChapter({ courseId: queryParams.value.courseId }).then(response => {
-    chapterOptions.value = response.rows;
+  getNestedList(queryParams.value.courseId).then(response => {
+    chapterOptions.value = transformTreeData(response.data);
   }).catch(error => {
     console.error('获取章节列表失败:', error);
   });
+}
+
+/** 转换树形数据，适配TreeSelect */
+function transformTreeData(data) {
+  if (!data || !data.length) return [];
+  return data.map(item => ({
+    value: item.chapterId,
+    label: item.chapterName,
+    children: transformTreeData(item.children)
+  }));
 }
 
 /** 获取知识点树结构 */
 function getKnowledgeTree() {
   if (!queryParams.value.courseId) return;
 
-  treeSelect({ courseId: queryParams.value.courseId }).then(response => {
-    knowledgeTreeOptions.value = response.data || [];
+  listKnowledge({
+    courseId: queryParams.value.courseId,
+    pageSize: 1000,
+    pageNum: 1
+  }).then(response => {
+    knowledgeTreeOptions.value = proxy.handleTree(response.rows, "knowledgeId", "parentId");
   }).catch(error => {
     console.error('获取知识点树失败:', error);
   });
+}
+
+/** 树节点点击 */
+function handleNodeClick(data) {
+  handleViewDetail(data);
 }
 
 /** 取消按钮 */
@@ -985,6 +1063,7 @@ function reset() {
     status: "0",
     remark: undefined
   };
+  keywordTags.value = [];
   proxy.resetForm("kgform");
 }
 
@@ -1023,12 +1102,25 @@ function handleAdd() {
   title.value = "添加知识点";
 }
 
+/** 添加子节点 */
+function handleAddChild(row) {
+  reset();
+  form.value.parentId = row.knowledgeId;
+  open.value = true;
+  title.value = "添加子知识点";
+}
+
 /** 修改按钮操作 */
 function handleUpdate(row) {
   reset();
   const knowledgeId = row.knowledgeId || ids.value[0];
   getKnowledge(knowledgeId).then(response => {
     form.value = response.data;
+    if (form.value.keywords) {
+      keywordTags.value = form.value.keywords.split(',');
+    } else {
+      keywordTags.value = [];
+    }
     open.value = true;
     title.value = "修改知识点";
   }).catch(error => {
@@ -1111,6 +1203,9 @@ function handleBatchManage() {
 
 /** 查看知识树 */
 function handleViewTree() {
+  if (knowledgeTreeOptions.value.length === 0) {
+    getKnowledgeTree();
+  }
   treeOpen.value = true;
 }
 
@@ -1134,23 +1229,25 @@ function handleImportSubmit() {
   const formData = new FormData();
   formData.append('file', uploadFile.value);
   formData.append('courseId', queryParams.value.courseId);
+  formData.append('updateSupport', false);
 
-  // 这里调用导入API
-  proxy.$modal.msgInfo('导入功能开发中');
-  // proxy.$http.post('/knowledge/import', formData).then(response => {
-  //   proxy.$modal.msgSuccess('导入成功');
-  //   importOpen.value = false;
-  //   getList();
-  //   getKnowledgeTree();
-  // }).catch(error => {
-  //   console.error('导入失败:', error);
-  //   proxy.$modal.msgError('导入失败');
-  // });
+  proxy.$modal.loading("正在导入数据，请稍候...");
+  importKnowledge(formData).then(response => {
+    proxy.$modal.closeLoading();
+    proxy.$alert(response.msg, "导入结果", { dangerouslyUseHTMLString: true });
+    importOpen.value = false;
+    getList();
+    getKnowledgeTree();
+  }).catch(error => {
+    proxy.$modal.closeLoading();
+    console.error('导入失败:', error);
+    // 错误信息已经在 request.js 中处理了
+  });
 }
 
 /** 下载模板 */
 function downloadTemplate() {
-  proxy.download('/knowledge/template', {}, '知识点导入模板.xlsx');
+  proxy.download('edu/knowledge/importTemplate', {}, '知识点导入模板.xlsx');
 }
 
 /** 删除按钮操作 */
@@ -1177,7 +1274,7 @@ function handleExport() {
     return;
   }
 
-  proxy.download('knowledge/knowledge/export', {
+  proxy.download('edu/knowledge/export', {
     ...queryParams.value
   }, `知识点_${props.courseData.courseName}_${new Date().getTime()}.xlsx`);
 }
@@ -1191,63 +1288,34 @@ function getShortKeywords(keywords) {
   }
   return `${keywordArray.slice(0, 2).join(',')}...`;
 }
+
+/** 查询课程列表 */
+function getCourseList() {
+  listCourse({ pageNum: 1, pageSize: 1000 }).then(response => {
+    courseOptions.value = response.rows;
+  });
+}
+/** 课程变化时查询章节列表 */
+/** 课程变化时处理 */
+function handleCourseChange(courseId) {
+  queryParams.value.chapterId = undefined;
+  chapterOptions.value = [];
+  if (courseId) {
+    getChapterList();
+  }
+}
+
+onMounted(() => {
+  if (!props.courseData.courseId) {
+    getList();
+    getCourseList();
+  }
+});
 </script>
 
 <style scoped>
-.course-info-card {
-  margin-bottom: 20px;
-}
-
-.course-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.course-left {
-  display: flex;
-  gap: 20px;
-  flex: 1;
-}
-
-.course-img {
-  width: 120px;
-  height: 120px;
-  border-radius: 8px;
-  object-fit: cover;
-}
-
-.course-info h3 {
-  margin: 0 0 10px 0;
-  font-size: 20px;
-  color: #303133;
-}
-
-.course-desc {
-  margin: 0 0 15px 0;
-  color: #606266;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.course-stats {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #909399;
-  font-size: 14px;
-}
-
-.course-actions {
-  display: flex;
-  gap: 10px;
-  flex-direction: column;
+.knowledge-container {
+  padding: 0;
 }
 
 .knowledge-name-cell {
@@ -1352,5 +1420,26 @@ function getShortKeywords(keywords) {
 
 :deep(.el-tree-node__content) {
   height: 36px;
+}
+
+.tag-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.button-new-tag {
+  height: 24px;
+  line-height: 22px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px; /* Ensure height consistency even with fewer buttons */
 }
 </style>

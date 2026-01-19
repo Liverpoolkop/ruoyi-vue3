@@ -3,8 +3,8 @@
     <div class="graph-left">
       <div class="graph-header">
         <div class="title-section">
-          <h2>知识图谱</h2>
-          <div class="subtitle">课程：{{ currentCourse || '数据库系统' }}</div>
+          <h2><span class="icon-box">🕸️</span> 知识图谱</h2>
+          <div class="subtitle"><span class="course-label">当前课程</span> {{ currentCourse || '数据库系统' }}</div>
         </div>
       </div>
       <div class="chart-wrapper">
@@ -157,13 +157,17 @@ export default {
         links: [],
         courseName: '数据库系统'
       })
+    },
+    courseName: {
+      type: String,
+      default: ''
     }
   },
   data() {
     return {
       chart: null,
       selectedNode: null,
-      currentCourse: '数据库系统',
+      currentCourse: '',
       nodeCount: 0,
       linkCount: 0,
       difficultyCount: {
@@ -218,7 +222,7 @@ export default {
 
       this.nodeCount = nodes.length;
       this.linkCount = links.length;
-      this.currentCourse = this.graphData.courseName || '数据库系统';
+      this.currentCourse = this.courseName || this.graphData.courseName || '数据库系统';
 
       // 统计难度分布
       this.difficultyCount = { easy: 0, medium: 0, hard: 0 };
@@ -296,69 +300,82 @@ export default {
     updateChart() {
       if (!this.chart || !this.graphData.nodes) return;
 
-      // 根据节点数量动态调整大小
-      const baseSize = Math.max(20, Math.min(50, 400 / Math.sqrt(this.nodeCount)));
+          // 根据节点数量动态调整大小
+          const baseSize = 60;
 
-      const nodes = this.graphData.nodes.map(node => ({
-        id: node.id,
-        name: node.name,
-        category: node.category,
-        symbolSize: baseSize,
-        itemStyle: {
-          color: this.getDifficultyColor(node.category),
-          borderColor: '#fff',
-          borderWidth: 2,
-          shadowColor: 'rgba(0, 0, 0, 0.2)',
-          shadowBlur: 10,
-          shadowOffsetY: 3
-        },
-        label: {
-          show: true,
-          position: 'right',
-          distance: 15,
-          fontSize: 12,
-          fontWeight: 'normal',
-          color: '#333',
-          backgroundColor: 'rgba(255, 255, 255, 0.8)',
-          borderColor: 'rgba(0, 0, 0, 0.1)',
-          borderWidth: 1,
-          borderRadius: 4,
-          padding: [3, 6],
-          formatter: (params) => {
-            const maxLength = 15;
-            const name = params.data.name;
-            return name.length > maxLength ? name.substring(0, maxLength) + '...' : name;
-          }
-        },
-        emphasis: {
-          scale: 1.2,
-          label: {
-            show: true,
-            fontSize: 14,
-            fontWeight: 'bold'
-          }
-        }
-      }));
+          const nodes = this.graphData.nodes.map(node => ({
+            id: node.id,
+            name: node.name,
+            category: node.category,
+            symbolSize: baseSize,
+            itemStyle: {
+              color: '#F7B568', // Orange fill
+              borderColor: '#2D72B7', // Blue border
+              borderWidth: 2,
+              shadowColor: 'rgba(0, 0, 0, 0.2)',
+              shadowBlur: 10,
+              shadowOffsetY: 3
+            },
+            label: {
+              show: true,
+              position: 'inside', // Inside label
+              fontSize: 12,
+              fontWeight: 'normal',
+              color: '#000', // Black text
+              formatter: (params) => {
+                const maxLength = 6; // shorter for inside
+                const name = params.data.name;
+                return name.length > maxLength ? name.substring(0, maxLength) + '...' : name;
+              }
+            },
+            emphasis: {
+              scale: 1.2,
+              label: {
+                show: true,
+                fontSize: 14,
+                fontWeight: 'bold'
+              },
+              itemStyle: {
+                 color: '#F7B568',
+                 borderColor: '#2D72B7',
+                 borderWidth: 3
+              }
+            }
+          })).map(node => {
+            // 增加中心节点逻辑
+            // 如果节点ID最小或者入度最高，设为中心节点（简单模拟）
+            // 这里假设第一个节点是根节点，或者通过名字判断
+            if (node.name.includes('课程') || node.name.includes('数据结构')) {
+                node.itemStyle = {
+                    color: '#EB6A53',
+                    borderColor: '#A33825',
+                    borderWidth: 2
+                };
+                node.symbolSize = 80;
+            }
+            return node;
+          });
 
-      const links = this.graphData.links.map(link => ({
-        source: link.source,
-        target: link.target,
-        name: link.name,
-        value: link.value || 1,
-        lineStyle: {
-          color: this.getRelationColor(link.name),
-          width: 2,
-          curveness: 0.2,
-          type: 'solid',
-          opacity: 0.8
-        },
-        emphasis: {
-          lineStyle: {
-            width: 4,
-            opacity: 1
-          }
-        }
-      }));
+          const links = this.graphData.links.map(link => ({
+            source: link.source,
+            target: link.target,
+            name: link.name,
+            value: link.value || 1,
+            lineStyle: {
+              color: '#ccc', // Light grey
+              width: 1,
+              curveness: 0.1,
+              type: 'solid',
+              opacity: 0.8
+            },
+            emphasis: {
+              lineStyle: {
+                width: 2,
+                opacity: 1,
+                color: '#999'
+              }
+            }
+          }));
 
       const option = {
         backgroundColor: 'transparent',
@@ -406,7 +423,12 @@ export default {
           edgeSymbol: ['none', 'arrow'],
           edgeSymbolSize: 10,
           edgeLabel: {
-            show: false
+            show: true,
+            formatter: (params) => {
+              return this.getRelationText(params.data.name);
+            },
+            fontSize: 10,
+            color: '#666'
           },
           lineStyle: {
             color: 'source',
@@ -425,8 +447,8 @@ export default {
           },
           force: {
             initLayout: 'circular',
-            repulsion: Math.min(800, 100 + this.nodeCount * 5),
-            edgeLength: [80, 140],
+            repulsion: 1000, // Increase repulsion
+            edgeLength: [120, 200], // Increase edge length
             gravity: 0.1,
             layoutAnimation: true,
             friction: 0.6
@@ -463,6 +485,7 @@ export default {
   padding: 16px;
   gap: 16px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .graph-left {
@@ -483,37 +506,52 @@ export default {
 
 .title-section h2 {
   margin: 0;
-  color: #1890ff;
-  font-size: 22px;
+  color: #303133;
+  font-size: 20px;
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
-.title-section h2::before {
-  content: "📚";
-  font-size: 24px;
+.icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #e6f7ff;
+  border-radius: 8px;
+  font-size: 20px;
 }
 
 .subtitle {
-  color: #666;
-  font-size: 14px;
-  margin-top: 6px;
-  display: flex;
+  margin-top: 8px;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  background: #f4f4f5;
+  padding: 4px 12px;
+  border-radius: 15px;
+  color: #606266;
+  font-size: 13px;
 }
 
-.subtitle::before {
-  content: "📖";
+.course-label {
+  background: #409eff;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-right: 8px;
+  font-weight: 500;
 }
 
 .chart-wrapper {
   flex: 1;
   padding: 16px;
   position: relative;
-  min-height: 600px;
+  height: 100%;
+  min-height: 0;
 }
 
 .graph-chart {
@@ -525,7 +563,7 @@ export default {
 
 .graph-sidebar {
   flex: 1;
-  min-width: 320px;
+  min-width: 280px;
   max-width: 380px;
   display: flex;
   flex-direction: column;

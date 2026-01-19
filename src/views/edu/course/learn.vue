@@ -565,7 +565,13 @@
         <div v-else-if="activeMenu === 'members'" class="content-wrapper">
            <div class="content-header">
             <h2>人员管理</h2>
-            <el-button type="primary" size="small" :icon="Plus" @click="openStudentAddDialog">添加成员</el-button>
+            <div>
+              <el-badge :value="applicants.length" class="item" v-if="applicants.length > 0" style="margin-right: 15px;">
+                <el-button type="warning" size="small" icon="Check" @click="openApprovalDialog">审批申请</el-button>
+              </el-badge>
+              <el-button v-else type="warning" plain size="small" icon="Check" @click="openApprovalDialog" style="margin-right: 15px;">审批申请</el-button>
+              <el-button type="primary" size="small" :icon="Plus" @click="openStudentAddDialog">添加成员</el-button>
+            </div>
           </div>
           
           <el-table 
@@ -672,9 +678,9 @@
         <!-- knowledge -->
         <div v-else-if="activeMenu === 'knowledge'" class="content-wrapper">
           <div class="content-header">
-            <h2>图谱管理</h2>
+            <h2>知识图谱</h2>
           </div>
-          <Knowledge :courseData="course.value"></Knowledge>
+          <Knowledge :courseData="course"></Knowledge>
         </div>
 
 
@@ -961,6 +967,13 @@
             <el-radio label="0">进行中</el-radio>
             <el-radio label="1">已结束</el-radio>
           </el-radio-group>
+        </el-form-item>
+        <el-form-item label="加入设置" prop="approvalRequired">
+          <div class="approval-setting">
+            <span class="setting-label">需要审批才能加入</span>
+            <el-switch v-model="editCourseForm.approvalRequired" />
+          </div>
+          <div class="setting-tip">开启后，学生申请加入课程需要教师或管理员审核通过</div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -1340,6 +1353,28 @@
         <el-button @click="submissionDialogOpen = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <!-- Approval Dialog -->
+    <el-dialog v-model="approvalOpen" title="加入申请审批" width="800px">
+      <el-table :data="applicants">
+        <el-table-column label="用户" prop="student.nickName" />
+        <el-table-column label="邮箱" prop="student.email" />
+        <el-table-column label="申请时间" prop="createTime">
+          <template #default="scope">
+            <span>{{ parseTime(scope.row.createTime) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" align="center" width="200">
+          <template #default="scope">
+            <el-button link type="primary" icon="Check" @click="handleApprove(scope.row, '1')">通过</el-button>
+            <el-button link type="danger" icon="Close" @click="handleApprove(scope.row, '2')">拒绝</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div v-if="!applicants || applicants.length === 0" style="text-align: center; padding: 20px; color: #999;">
+        暂无待审批申请
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -1348,7 +1383,7 @@ import Knowledge from "@/views/edu/knowledge/index.vue";
 import { ref, onMounted, computed, watch, getCurrentInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getToken } from '@/utils/auth'
-import { getCourse, getCourseNotices, addCourseNotice, delCourseNotice, inviteCourse, getCourseStudents, addCourseStudents, removeCourseStudent, addCourseStudentsFromClass, updateCourse, delCourse } from '@/api/edu/course'
+import { getCourse, getCourseNotices, addCourseNotice, delCourseNotice, inviteCourse, getCourseStudents, addCourseStudents, removeCourseStudent, addCourseStudentsFromClass, updateCourse, delCourse, getApplicants, approveJoin } from '@/api/edu/course'
 import { getNestedList, addChapter, updateChapter, delChapter } from '@/api/system/chapter'
 import { listResource, addResource, updateResource, delResource, downloadResource } from '@/api/edu/resource'
 import { listTeachingResource, addTeachingResource, updateTeachingResource, delTeachingResource, downloadTeachingResource } from '@/api/edu/teachingResource'
@@ -1416,6 +1451,8 @@ const studentQueryParams = ref({
   pageNum: 1,
   pageSize: 10
 })
+const approvalOpen = ref(false)
+const applicants = ref([])
 const activeMenu = ref('courseware')
 const isTeacher = ref(false)
 const noticeOpen = ref(false)
@@ -2390,13 +2427,12 @@ const menuItems = computed(() => {
     { key: 'resources', label: '教学资源', icon: FolderOpened },
     { key: 'homework', label: '作业', icon: EditPen },
     { key: 'experiment', label: '实验', icon: Cpu },
-    { key: 'exam', label: '考试', icon: Monitor }
+    { key: 'exam', label: '考试', icon: Monitor },
+    { key: 'knowledge', label: '知识图谱', icon: Share }
   ]
   if (isTeacher.value) {
-    items.push({ key: 'members', label: '人员管理', icon: 'User' })
-    items.push({ key: 'settings', label: '课程设置', icon: 'Setting' })
-    items.push({ key: 'knowledge', label: '图谱管理', icon: 'Share' })
-
+    items.push({ key: 'members', label: '人员管理', icon: User })
+    items.push({ key: 'settings', label: '课程设置', icon: Setting })
   }
   return items
 })
@@ -2437,6 +2473,10 @@ const getCourseInfo = () => {
     const userId = userStore.id
     isTeacher.value = teachers.some(t => String(t.userId) === String(userId)) || (userStore.roles && userStore.roles.includes('admin'))
     
+    if (isTeacher.value) {
+      loadApplicants()
+    }
+
     if (activeMenu.value === 'announcement') {
         loadNotices()
     }
@@ -2603,6 +2643,29 @@ const submitAddStudents = () => {
       loadStudents()
     })
   }
+}
+
+const openApprovalDialog = () => {
+  approvalOpen.value = true
+  loadApplicants()
+}
+
+const loadApplicants = () => {
+  getApplicants(courseId).then(res => {
+    applicants.value = res.rows || []
+  })
+}
+
+const handleApprove = (row, status) => {
+  approveJoin({
+    courseId: courseId,
+    studentId: row.studentId,
+    status: status
+  }).then(() => {
+    ElMessage.success('操作成功')
+    loadApplicants()
+    loadStudents() // Refresh student list if approved
+  })
 }
 
 const loadHomeworks = () => {
@@ -2806,7 +2869,8 @@ const openEditCourseDialog = () => {
     courseDesc: course.value.courseDesc,
     lessonHours: course.value.lessonHours,
     status: course.value.status,
-    courseImg: course.value.courseImg
+    courseImg: course.value.courseImg,
+    approvalRequired: course.value.approvalRequired
   }
   editCourseOpen.value = true
 }
@@ -2887,6 +2951,26 @@ const getFileName = (url) => {
 </script>
 
 <style scoped lang="scss">
+.approval-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.setting-label {
+  font-size: 14px;
+  color: #606266;
+  margin-right: 10px;
+}
+
+.setting-tip {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.5;
+  margin-top: 5px;
+}
+
 // ... (previous styles)
 
 // Search Results Styles

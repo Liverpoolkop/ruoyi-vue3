@@ -70,3 +70,14 @@ export function associateKnowledge(resourceType, resourceId, knowledgeIds) {
         data: { resourceType, resourceId, knowledgeIds }
     })
 }
+
+export function importKnowledge(data) {
+    return request({
+        url: '/edu/knowledge/importData',
+        method: 'post',
+        data: data,
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    })
+}

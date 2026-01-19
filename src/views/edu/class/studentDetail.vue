@@ -111,12 +111,12 @@
               </div>
             </template>
             <div class="teacher-profile">
-              <el-avatar :size="60" src="" class="mb-2">
-                {{ info.teacherName ? info.teacherName.substring(0, 1) : '师' }}
-              </el-avatar>
-              <div class="name">{{ info.teacherName }}</div>
-              <div class="role">班主任</div>
-            </div>
+            <el-avatar :size="60" src="" class="mb-2">
+              {{ info.nickName ? info.nickName.substring(0, 1) : '师' }}
+            </el-avatar>
+            <div class="name">{{ info.nickName }}</div>
+            <div class="role">班主任</div>
+          </div>
           </el-card>
         </el-col>
       </el-row>

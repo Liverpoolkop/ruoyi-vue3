@@ -33,7 +33,7 @@
                 <span>学生名单</span>
               </div>
               <div class="actions" v-if="canManage">
-                <el-button size="small" type="primary" plain @click="importOpen=true">
+                <el-button size="small" type="primary" plain @click="openImportDialog">
                   <el-icon class="mr-1"><Upload /></el-icon> 导入名单
                 </el-button>
                 <el-button size="small" type="success" plain @click="openAddDialog">
@@ -113,9 +113,9 @@
           </template>
           <div class="teacher-profile">
             <el-avatar :size="60" src="" class="mb-2">
-              {{ info.teacherName ? info.teacherName.substring(0, 1) : '师' }}
+              {{ info.nickName ? info.nickName.substring(0, 1) : '师' }}
             </el-avatar>
-            <div class="name">{{ info.teacherName }}</div>
+            <div class="name">{{ info.nickName }}</div>
             <div class="role">班主任</div>
           </div>
         </el-card>
@@ -258,12 +258,13 @@ const { proxy } = getCurrentInstance()
 const route = useRoute()
 const info = ref({})
 const students = ref([])
-const importOpen = ref(false)
 const studentAddOpen = ref(false)
 const studentAddActiveTab = ref('search')
 const studentSearchQuery = ref('')
 const studentSearchResults = ref([])
 const studentSelected = ref([])
+const searchPerformed = ref(false)
+const searchLoading = ref(false)
 
 // Invite Logic
 const inviteOpen = ref(false)
@@ -294,7 +295,7 @@ const upload = reactive({
   // 设置上传的请求头部
   headers: { Authorization: "Bearer " + getToken() },
   // 上传的地址
-  url: import.meta.env.VITE_APP_BASE_API + "/system/user/importData"
+  url: import.meta.env.VITE_APP_BASE_API + `/edu/class/${route.params.id}/students/import`
 });
 
 onMounted(()=>{
@@ -305,7 +306,7 @@ const canManage = computed(() => auth.hasRole('admin') || auth.hasRole('teacher'
 
 /** 下载模板操作 */
 function importTemplate() {
-  proxy.download("system/user/importTemplate", {}, `user_template_${new Date().getTime()}.xlsx`);
+  proxy.download("edu/class/students/importTemplate", {}, `student_template_${new Date().getTime()}.xlsx`);
 };
 
 /**文件上传中处理 */
@@ -370,6 +371,11 @@ function openAddDialog() {
   studentSearchResults.value = []
   studentSelected.value = []
   searchPerformed.value = false
+}
+
+function openImportDialog() {
+  studentAddOpen.value = true
+  studentAddActiveTab.value = 'import'
 }
 
 function searchStudent() {

@@ -57,7 +57,7 @@
       <el-table-column label="年级" align="center" key="grade" prop="grade" v-if="columns[1].visible" width="100" />
       <el-table-column label="专业" align="center" key="majorName" prop="majorName" v-if="columns[2].visible"
         :show-overflow-tooltip="true" />
-      <el-table-column label="班主任" align="center" key="teacherName" prop="teacherName" v-if="columns[3].visible"
+      <el-table-column label="班主任" align="center" key="teacherName" prop="nickName" v-if="columns[3].visible"
         width="140" />
       <el-table-column label="人数" align="center" key="studentCount" prop="studentCount" v-if="columns[4].visible"
         width="80" />

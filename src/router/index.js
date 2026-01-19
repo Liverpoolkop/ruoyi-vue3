@@ -48,6 +48,11 @@ export const constantRoutes = [
     hidden: true
   },
   {
+    path: '/portal/exam/:id(\\d+)',
+    component: () => import('@/views/portal/exam/detail'),
+    hidden: true
+  },
+  {
     path: '/system/course/index/:id(\\d+)',
     component: () => import('@/views/edu/course/detail'),
     hidden: true
@@ -134,6 +139,11 @@ export const constantRoutes = [
     hidden: true
   },
   {
+    path: '/edu/experiment/coding/:id(\\d+)',
+    component: () => import('@/views/edu/experiment/coding'),
+    hidden: true
+  },
+  {
     path: '/edu/class',
     component: Layout,
     hidden: true,
@@ -145,6 +155,11 @@ export const constantRoutes = [
         meta: { title: '班级详情', activeMenu: '/edu/class' }
       }
     ]
+  },
+  {
+    path: '/edu/exam/taking/:examId',
+    component: () => import('@/views/edu/exam/taking'),
+    hidden: true
   },
 ]
 
@@ -212,6 +227,11 @@ export const dynamicRoutes = [
         meta: { title: '调度日志', activeMenu: '/monitor/job' }
       }
     ]
+  },
+  {
+    path: '/edu/homework/submission/:homeworkId(\\d+)',
+    component: () => import('@/views/portal/homework/submission.vue'),
+    hidden: true
   },
   {
     path: '/tool/gen-edit',

@@ -354,18 +354,6 @@ function handleClosed() {
 </script>
 
 <style scoped lang="scss">
-:deep(.el-overlay-dialog) {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-:deep(.el-dialog) {
-  margin: 0 !important;
-  /* 确保弹窗在 flex 容器中不被拉伸 */
-  max-width: calc(100vw - 32px);
-}
-
 .login-form {
   padding: 0 20px;
   .el-input {

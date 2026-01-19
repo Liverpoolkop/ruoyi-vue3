@@ -63,10 +63,12 @@
   </div>
 
 
-  <div class="chat-float-btn" @click="toggleChatWindow">
-      <i class="el-icon-chat-dot-round"></i>
-      <span>AI助手</span>
-    </div>
+    <el-tooltip content="AI智能教学助手" placement="left" effect="dark">
+      <div class="chat-float-btn" @click="toggleChatWindow" v-if="userStore.token">
+        <span class="icon-emoji">🤖</span>
+        
+        </div>
+    </el-tooltip>
 
     <div v-show="isChatOpen" class="chat-window">
       <div class="chat-header">
@@ -106,7 +108,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, nextTick } from 'vue'
+import { ref, onMounted, reactive, nextTick, computed } from 'vue'
 import PortalNavbar from '@/components/PortalNavbar/index.vue'
 import { useRouter } from 'vue-router'
 import useUserStore from '@/store/modules/user'
@@ -118,8 +120,15 @@ import axios from 'axios'; // 确保引入了axios
 import request from '@/utils/request'; 
 // 1. 引入 Markdown 解析器
 import MarkdownIt from 'markdown-it';
+// 1. 【新增】引入 KaTeX 插件
+import mk from 'markdown-it-katex';
+
+// 2. 【新增】引入 KaTeX 的 CSS 样式 (这一步非常重要，不引的话公式会乱码！)
+import 'katex/dist/katex.min.css';
+
 // 2. 初始化解析器实例
 const md = new MarkdownIt();
+md.use(mk); // <--- 加上这一行，这就开启了数学公式支持
 // 3. 定义一个解析函数，在模板里调用
 function renderMessage(content) {
   // 防止 null 或 undefined 报错
@@ -198,10 +207,40 @@ const messageList = ref([
 
 // --- 2. 方法定义 (相当于 methods) ---
 
+
+
+// --- [新增] 获取历史记录函数 ---
+function getHistory() {
+  request({
+    url: '/api/ai/history',
+    method: 'get'
+  }).then(res => {
+    // res.data 是后端返回的 List<SysAiHistory>
+    const history = res.data || [];
+    
+    // 重置消息列表，保留第一条欢迎语 (或者你也可以不保留)
+    messageList.value = [
+       { role: 'ai', content: '你好！我是您的智能助手，有什么可以帮您？' }
+    ];
+    
+    // 把后端的数据转换一下格式推入列表
+    history.forEach(item => {
+       messageList.value.push({
+          role: item.role, // 数据库里存的是 'user' 或 'ai'，正好对应
+          content: item.content
+       });
+    });
+    
+    scrollToBottom();
+  });
+}
+
 // 切换窗口显示
 function toggleChatWindow() {
   isChatOpen.value = !isChatOpen.value;
   if (isChatOpen.value) {
+    // 窗口打开时，去后端拉取历史记录
+    getHistory(); 
     scrollToBottom();
   }
 }
@@ -478,37 +517,55 @@ function scrollToBottom() {
   margin-top: 50px;
 }
 
-/* 悬浮按钮 */
+/* 悬浮按钮 - 纯图标版 */
 .chat-float-btn {
   position: fixed;
-  bottom: 30px;
-  right: 30px;
-  width: 60px;
-  height: 60px;
-  background-color: #409EFF;
+  bottom: 40px;        /* 稍微往上提一点，避免贴底 */
+  right: 40px;         /* 稍微往左一点 */
+  width: 85px;         /* 缩小尺寸 */
+  height: 85px;
+  background: linear-gradient(135deg, #409EFF, #36d1dc); /* 给个渐变色更高级 */
   border-radius: 50%;
   color: white;
-  display: flex;
-  flex-direction: column;
+  display: flex;       /* Flex布局让内容居中 */
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 15px rgba(64, 158, 255, 0.4); /* 漂亮的投影 */
   z-index: 9999;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 弹性动画 */
+  user-select: none;
 }
+
+/* 鼠标悬停效果 */
 .chat-float-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.15) rotate(10deg); /* 悬停时放大并微微旋转 */
+  box-shadow: 0 8px 25px rgba(64, 158, 255, 0.6);
 }
-.chat-float-btn i { font-size: 24px; margin-bottom: 2px; }
-.chat-float-btn span { font-size: 10px; }
+
+/* 点击时的按压效果 */
+.chat-float-btn:active {
+  transform: scale(0.95);
+}
+
+/* Emoji 图标样式 */
+.icon-emoji {
+  font-size: 40px; /* Emoji 字体大小 */
+  line-height: 1;
+  margin-top: 2px; /* 微调垂直居中 */
+}
+
+/* 如果你用的是 Element 图标 (i 标签)，用这个样式 */
+.chat-float-btn i { 
+  font-size: 26px; 
+}
 
 /* 聊天窗口主体 */
 .chat-window {
   position: fixed;
   bottom: 100px;
   right: 30px;
-  width: 380px;
+  width: 600px;
   height: 500px;
   background: white;
   border-radius: 10px;
@@ -639,5 +696,18 @@ function scrollToBottom() {
 .md-content :deep(strong) {
   font-weight: bold;
   color: #333;
+}
+
+/* KaTeX 公式字体大小调整，防止太大撑破气泡 */
+.md-content :deep(.katex) {
+  font-size: 1.1em; 
+}
+
+/* 块级公式 (就是 $$...$$ 包裹的) 让它居中并带滚动条 */
+.md-content :deep(.katex-display) {
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 10px 0;
+  padding: 5px 0;
 }
 </style>

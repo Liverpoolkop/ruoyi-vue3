@@ -157,6 +157,11 @@ export const constantRoutes = [
       }
     ]
   },
+  {
+    path: '/edu/exam/taking/:examId',
+    component: () => import('@/views/edu/exam/taking'),
+    hidden: true
+  },
 ]
 
 // 动态路由，基于用户权限动态去加载

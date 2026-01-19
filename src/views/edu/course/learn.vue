@@ -130,14 +130,14 @@
              <p>3. 考试（30%）：期末考试。</p>
           </div>
         </div>
-        
+
         <!-- Homework -->
         <div v-else-if="activeMenu === 'homework'" class="content-wrapper">
           <div class="content-header">
             <h2>测验与作业</h2>
             <el-button v-if="isTeacher" type="primary" size="small" :icon="Plus" @click="openHomeworkDialog">发布作业</el-button>
           </div>
-          
+
           <div v-if="homeworkList && homeworkList.length > 0" class="homework-list">
              <div v-for="hw in homeworkList" :key="hw.id" :class="['homework-item', 'status-' + hw.status]">
                 <div class="homework-left-border"></div>
@@ -148,7 +148,7 @@
                          {{ getHomeworkStatusText(hw.status) }}
                        </el-tag>
                    </div>
-                   
+
                    <div class="homework-meta">
                        <div class="meta-item">
                            <el-icon><Calendar /></el-icon>
@@ -162,7 +162,7 @@
 
                    <!-- Content preview removed as per request -->
                 </div>
-                
+
                 <div class="homework-right">
                    <template v-if="isTeacher">
                        <div class="action-buttons">
@@ -185,34 +185,34 @@
                                <span class="main-text">未提交</span>
                            </div>
                        </div>
-                       
+
                        <div class="student-actions">
                            <el-tooltip :content="getSubmitTooltip(hw)" :disabled="canSubmit(hw) || (isSubmitted(hw) && canSubmit(hw))" placement="top">
                                <span class="action-wrapper">
-                                   <el-button 
+                                   <el-button
                                     v-if="!isSubmitted(hw)"
-                                    type="primary" 
+                                    type="primary"
                                     round
-                                    :icon="Upload" 
+                                    :icon="Upload"
                                     :disabled="!canSubmit(hw)"
                                     @click="openSubmitDialog(hw)"
                                    >提交作业</el-button>
-                                   
-                                   <el-button 
+
+                                   <el-button
                                     v-else-if="canSubmit(hw)"
-                                    type="warning" 
+                                    type="warning"
                                     plain
                                     round
-                                    :icon="Edit" 
+                                    :icon="Edit"
                                     @click="openSubmitDialog(hw)"
                                    >修改作业</el-button>
-                                   
-                                   <el-button 
+
+                                   <el-button
                                     v-else
-                                    type="info" 
+                                    type="info"
                                     plain
                                     round
-                                    :icon="View" 
+                                    :icon="View"
                                     @click="openViewDialog(hw)"
                                    >查看详情</el-button>
                                </span>
@@ -227,10 +227,229 @@
 
         <!-- Exam -->
         <div v-else-if="activeMenu === 'exam'" class="content-wrapper">
-           <div class="content-header">
+          <div class="content-header">
             <h2>考试</h2>
+            <el-button v-if="isTeacher" type="primary" size="small" icon="Plus" @click="openExamDialog">发起考试</el-button>
           </div>
-          <el-empty description="暂无考试" />
+
+          <div v-if="examList && examList.length > 0" class="exam-list">
+            <el-card v-for="exam in examList" :key="exam.id" class="exam-card" shadow="hover">
+              <div class="exam-header">
+                <div class="exam-title">
+                  <el-tag :type="getExamStatusTag(exam)" effect="dark" style="margin-right: 8px;">
+                    {{ getExamStatusText(exam) }}
+                  </el-tag>
+                  {{ exam.title }}
+                </div>
+                <div v-if="isTeacher" class="exam-actions">
+                  <el-button link type="primary" @click="handleEditExam(exam)">
+                    编辑
+                  </el-button>
+                  <el-button link type="success" @click="handlePublishExam(exam)" v-if="exam.status === '0'">
+                    发布
+                  </el-button>
+                  <el-button link type="warning" @click="handleMarkExam(exam)" v-if="exam.status === '1'">
+                    阅卷
+                  </el-button>
+                  <el-button link type="danger" @click="handleDeleteExam(exam)">
+                    删除
+                  </el-button>
+                </div>
+              </div>
+
+              <div class="exam-info">
+                <div class="info-item"><el-icon><Timer /></el-icon> 时长：{{ exam.duration ? exam.duration + '分钟' : '不限时' }}</div>
+                <div class="info-item"><el-icon><Trophy /></el-icon> 总分：{{ exam.totalScore }}分</div>
+                <div class="info-item"><el-icon><Calendar /></el-icon> 截止：{{ exam.endTime || '无截止' }}</div>
+              </div>
+
+              <div class="exam-desc" v-if="exam.description">{{ exam.description }}</div>
+
+              <div v-if="!isTeacher" class="student-action">
+                <el-button
+                  type="primary"
+                  round
+                  :disabled="!canStartExam(exam)"
+                  @click="handleStartExam(exam)"
+                >
+                  {{ getStudentExamBtnText(exam) }}
+                </el-button>
+              </div>
+            </el-card>
+          </div>
+          <el-empty v-else description="暂无考试安排" />
+
+          <el-dialog v-model="examDialogOpen" :title="examForm.id ? '编辑考试' : '发起考试'" width="900px" top="5vh">
+            <el-form :model="examForm" ref="examRef" :rules="examRules" label-width="100px">
+              <el-form-item label="考试名称" prop="title">
+                <el-input v-model="examForm.title" placeholder="请输入考试名称" />
+              </el-form-item>
+              <el-row>
+                 <el-col :span="12">
+                   <el-form-item label="答题时长" prop="duration">
+                     <el-input-number v-model="examForm.duration" :min="0" placeholder="0为不限时" />
+                     <span class="tip-text">分钟 (0或空为不限时)</span>
+                   </el-form-item>
+                 </el-col>
+                 <el-col :span="12">
+                   <el-form-item label="截止时间" prop="endTime">
+                      <el-date-picker v-model="examForm.endTime" type="datetime" placeholder="选择截止时间" value-format="YYYY-MM-DD HH:mm:ss" style="width: 100%"/>
+                   </el-form-item>
+                 </el-col>
+              </el-row>
+              <el-form-item label="试卷须知">
+                <el-input v-model="examForm.description" type="textarea" :rows="3" />
+              </el-form-item>
+
+              <el-divider content-position="left">试卷题目管理</el-divider>
+
+              <div class="question-selector">
+                 <div class="selector-header">
+                    <el-button
+                      type="success"
+                      plain
+                      size="small"
+                      icon="Plus"
+                      @click="openQuestionBankDialog"
+                      :disabled="examForm.status === '1'"
+                    >
+                      从题库添加题目 {{ examForm.status === '1' ? '(已发布不可修改题目)' : '' }}
+                    </el-button>
+                    <span class="stats">当前题目数：{{ examForm.questionList.length }}，总分：{{ calculateTotalScore() }}</span>
+                 </div>
+                 <el-table :data="examForm.questionList" border style="margin-top: 10px; max-height: 300px; overflow-y: auto;">
+                    <el-table-column type="index" label="序号" width="50" />
+                    <el-table-column prop="content" label="题目内容" show-overflow-tooltip />
+                    <el-table-column label="类型" width="80">
+                       <template #default="{row}">{{ getQuestionType(row.type) }}</template>
+                    </el-table-column>
+                    <el-table-column label="分值" width="120">
+                       <template #default="{row}">
+                          <el-input-number v-model="row.score" :min="1" size="small" style="width: 90px" :disabled="examForm.status === '1'" />
+                       </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="80">
+                       <template #default="scope">
+                          <el-button
+                            link
+                            type="danger"
+                            icon="Delete"
+                            @click="removeQuestion(scope.$index)"
+                            :disabled="examForm.status === '1'"
+                          ></el-button>
+                       </template>
+                    </el-table-column>
+                 </el-table>
+              </div>
+            </el-form>
+            <template #footer>
+              <el-button @click="examDialogOpen = false">取消</el-button>
+              <el-button type="primary" @click="submitExam">保存</el-button>
+            </template>
+          </el-dialog>
+
+          <el-dialog v-model="bankDialogOpen" title="选择题目" width="800px" append-to-body>
+             <div class="bank-filter">
+                <el-input v-model="qSearchTags" placeholder="输入标签搜索" style="width: 200px; margin-right: 10px;" />
+                <el-button type="primary" icon="Search" @click="searchQuestions">搜索</el-button>
+             </div>
+             <el-table :data="bankQuestionList" @selection-change="handleQSelection" height="400px">
+                <el-table-column type="selection" width="55" />
+                <el-table-column prop="content" label="题目" show-overflow-tooltip />
+                <el-table-column prop="tags" label="标签" width="150" />
+                <el-table-column prop="type" label="类型" width="100">
+                    <template #default="{row}">{{ getQuestionType(row.type) }}</template>
+                </el-table-column>
+             </el-table>
+             <template #footer>
+                <el-button @click="bankDialogOpen = false">取消</el-button>
+                <el-button type="primary" @click="confirmAddQuestions">添加选中 ({{ selectedBankQuestions.length }})</el-button>
+             </template>
+          </el-dialog>
+
+          <el-dialog v-model="markingOpen" title="考试阅卷" width="800px">
+            <el-table :data="markingList" v-loading="markingLoading">
+              <el-table-column label="学生姓名" prop="studentName" align="center" />
+              <el-table-column label="提交时间" prop="submitTime" align="center" width="180" />
+              <el-table-column label="状态" align="center" width="100">
+                <template #default="{row}">
+                  <el-tag :type="row.status === '3' ? 'success' : 'primary'">{{ getRecordStatus(row.status) }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="客观分" prop="objectiveScore" align="center" width="100" />
+              <el-table-column label="总分" prop="totalScore" align="center" width="100">
+                <template #default="{row}">
+                  <span style="font-weight:bold; color:#f56c6c">{{ row.totalScore }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" align="center">
+                <template #default="{row}">
+                  <el-button
+                    v-if="row.status === '2'"
+                    type="primary"
+                    size="small"
+                    @click="handleGrade(row)">
+                    去阅卷
+                  </el-button>
+                  <el-button
+                    v-else-if="row.status === '3'"
+                    type="success"
+                    size="small"
+                    plain
+                    @click="handleGrade(row)">
+                    已阅卷 (修改)
+                  </el-button>
+                  <span v-else>未交卷</span>
+                </template>
+              </el-table-column>
+            </el-table>
+            <template #footer>
+              <el-button @click="markingOpen = false">关 闭</el-button>
+            </template>
+          </el-dialog>
+
+
+          <el-drawer v-model="gradingDrawerOpen" title="批改试卷" size="50%">
+            <div style="padding: 20px; overflow-y: auto; height: calc(100vh - 150px);">
+              <div v-for="(item, index) in studentAnswerList" :key="item.id" style="border-bottom:1px solid #eee; padding-bottom:20px; margin-bottom:20px">
+
+                <div style="font-weight:bold; margin-bottom:10px;">
+                  <el-tag :type="String(item.questionType) === '4' ? 'warning' : 'info'" size="small">
+                      {{ String(item.questionType) === '4' ? '简答题' : '客观题' }}
+                  </el-tag>
+                  <span style="margin-left:10px;">第 {{ index + 1 }} 题</span>
+                  <span style="font-size:12px; color:#666; margin-left:5px;">(满分: {{ item.maxScore }}分)</span>
+                </div>
+
+                <div style="margin-bottom:10px;">{{ item.questionContent }}</div>
+
+                <div style="background:#f5f7fa; padding:10px; border-radius:4px; margin-bottom:10px;">
+                  <p style="margin:0; font-size:12px; color:#999">学生作答：</p>
+                  <p style="margin:5px 0 0 0; font-weight:bold">{{ item.studentAnswer || '未作答' }}</p>
+                </div>
+                <div style="background:#f0f9eb; padding:10px; border-radius:4px; margin-bottom:15px;">
+                  <p style="margin:0; font-size:12px; color:#67c23a">参考答案：</p>
+                  <p style="margin:5px 0 0 0">{{ item.refAnswer }}</p>
+                </div>
+
+                <div style="display:flex; align-items:center; background:#e6f7ff; padding:10px; border-radius:4px;">
+                  <span style="font-weight:bold; color:#409EFF; margin-right:10px;">评分：</span>
+                  <el-input-number v-model="item.score" :min="0" :max="item.maxScore" size="small" />
+                  <span v-if="String(item.questionType) !== '4'" style="margin-left:10px; font-size:12px; color:#999">
+                    (系统预判: {{ item.score }}分)
+                  </span>
+                </div>
+              </div>
+
+              <el-divider>评语</el-divider>
+              <el-input v-model="teacherComment" type="textarea" placeholder="写点评语..." :rows="3" />
+            </div>
+
+            <template #footer>
+              <el-button @click="gradingDrawerOpen = false">取消</el-button>
+              <el-button type="primary" @click="submitGrade">提交成绩</el-button>
+            </template>
+          </el-drawer>
         </div>
 
         <!-- Members -->
@@ -461,9 +680,9 @@
           <el-input v-model="resourceForm.resourceName" placeholder="请输入资源名称" />
         </el-form-item>
         <el-form-item label="资源文件" prop="url">
-           <FileUpload 
-             v-model="resourceForm.url" 
-             :limit="1" 
+           <FileUpload
+             v-model="resourceForm.url"
+             :limit="1"
              :file-type="['mp4', 'webm', 'ogg', 'mov', 'avi', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif']"
              :is-show-tip="false"
            />
@@ -678,7 +897,7 @@
             </el-form-item>
           </el-form>
         </div>
-        
+
         <div class="publish-right">
           <div class="preview-header">
             <span class="preview-label">内容预览</span>
@@ -694,7 +913,7 @@
           </div>
         </div>
       </div>
-      
+
       <template #footer>
         <div class="dialog-footer" style="text-align: center;">
           <el-button @click="homeworkOpen = false" size="large">取 消</el-button>
@@ -776,14 +995,14 @@
               <div class="section-title">我的作业</div>
               <div class="content-box">
                   <div class="text-content">{{ viewSubmissionData.content || '（无文本内容）' }}</div>
-                  
+
                   <!-- Merged Display for FileUrl (Images + Files) -->
                   <div v-if="viewSubmissionData.fileUrl" class="attachments-container">
                       <template v-for="(url, index) in viewSubmissionData.fileUrl.split(',')" :key="index">
                           <!-- Image Display -->
                           <div v-if="isImageUrl(url)" class="image-item" style="display: inline-block; margin-right: 10px; margin-bottom: 10px;">
-                              <el-image 
-                                :src="url" 
+                              <el-image
+                                :src="url"
                                 :preview-src-list="[url]"
                                 style="width: 100px; height: 100px; border-radius: 4px;"
                                 fit="cover"
@@ -816,22 +1035,22 @@
     </el-dialog>
 
     <!-- Resource Preview Dialog -->
-    <el-dialog 
-      v-model="resourcePlayOpen" 
-      :title="currentResource.resourceName" 
-      width="90%" 
+    <el-dialog
+      v-model="resourcePlayOpen"
+      :title="currentResource.resourceName"
+      width="90%"
       top="2vh"
-      destroy-on-close 
-      center 
+      destroy-on-close
+      center
       append-to-body
       class="resource-preview-dialog"
     >
       <div class="preview-container" :class="{'is-video': isVideoUrl(currentResource.url), 'is-office': isOfficeUrl(currentResource.url) || isPdfUrl(currentResource.url)}">
          <div class="preview-scroller" ref="previewScrollerRef">
-            <video 
-                v-if="isVideoUrl(currentResource.url)" 
-                :src="getFullUrl(currentResource.url)" 
-                controls 
+            <video
+                v-if="isVideoUrl(currentResource.url)"
+                :src="getFullUrl(currentResource.url)"
+                controls
                 autoplay
                 style="width: 100%; max-height: 75vh; display: block;"
             >
@@ -1056,7 +1275,7 @@ const submitResource = () => {
             else if(['pdf'].includes(ext)) type = 'pdf'
             else if(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) type = 'office'
             else if(['txt'].includes(ext)) type = 'text'
-            
+
             resourceForm.value.type = type
 
             if(resourceForm.value.resourceId) {
@@ -1193,7 +1412,7 @@ const findScrollableChild = (el, depth = 0) => {
     const style = window.getComputedStyle(child)
     const isScrollable = (style.overflowY === 'auto' || style.overflowY === 'scroll') && child.scrollHeight > child.clientHeight
     if (isScrollable) return child
-    
+
     // 递归查找
     const found = findScrollableChild(child, depth + 1)
     if (found) return found
@@ -1234,7 +1453,7 @@ const getFullUrl = (url) => {
 // 获取预览专用的 URL (支持内网穿透)
 const getPreviewUrl = (url) => {
   let fullUrl = getFullUrl(url)
-  
+
   // 如果配置了公网预览地址 (VITE_APP_PREVIEW_DOMAIN)，则替换
   const previewDomain = import.meta.env.VITE_APP_PREVIEW_DOMAIN
   if (previewDomain && fullUrl.startsWith('/')) {
@@ -1251,17 +1470,17 @@ const getPreviewUrl = (url) => {
          return previewDomain.replace(/\/$/, '') + fullUrl
      }
   }
-  
+
   // 降级策略：如果是本地开发环境，尝试提示用户
   if (isLocalEnv.value && !previewDomain) {
       console.warn('当前为本地环境，Office 预览需要配置 VITE_APP_PREVIEW_DOMAIN 为公网地址 (如 ngrok)')
   }
-  
+
   // 默认补全当前域名
   if (fullUrl.startsWith('/')) {
       return window.location.origin + fullUrl
   }
-  
+
   return fullUrl
 }
 
@@ -1289,7 +1508,7 @@ const allowDrop = (draggingNode, dropNode, type) => {
 const handleNodeDrop = (draggingNode, dropNode, dropType, ev) => {
   const draggedData = draggingNode.data
   const dropData = dropNode.data
-  
+
   // Calculate new parent
   let newParentId = 0
   if (dropType === 'inner') {
@@ -1302,10 +1521,10 @@ const handleNodeDrop = (draggingNode, dropNode, dropType, ev) => {
         newParentId = dropData.raw.chapterId // if sibling of resource, parent is resource's chapter
     }
   }
-  
+
   // Get siblings to update sort order
   const siblings = (dropType === 'inner') ? (dropData.children || []) : dropNode.parent.childNodes.map(n => n.data)
-  
+
   // Update sort for all siblings
   const promises = []
   siblings.forEach((node, index) => {
@@ -1325,7 +1544,7 @@ const handleNodeDrop = (draggingNode, dropNode, dropType, ev) => {
       }
       if(p) promises.push(p)
   })
-  
+
   Promise.all(promises).then(() => {
       ElMessage.success('排序更新成功')
       getChapterList() // Refresh to ensure consistency
@@ -1343,6 +1562,622 @@ const studentSearchResults = ref([])
 const studentSelected = ref([])
 const classList = ref([])
 const selectedClassId = ref(null)
+
+//Resource Logic
+// --- 状态定义 ---
+const resourceList = ref([]);
+const resourceUploadOpen = ref(false);
+const previewOpen = ref(false); // [新增] 预览弹窗开关
+const previewUrl = ref("");     // [新增] 预览地址
+const previewType = ref("");    // [新增] 预览类型
+const previewTitle = ref("");   // [新增] 预览标题
+
+// 表单只需这两个字段，resourceName 后台或提交前处理
+const resourceForm = ref({
+  courseId: null,
+  filePath: '',
+  resourceName: '', // 虽然弹窗不填，但提交需要
+  status: '0'
+});
+
+// 只需要校验文件是否存在
+const resourceRules = {
+  filePath: [{ required: true, message: "请上传文件", trigger: "change" }]
+};
+
+// --- 方法定义 ---
+
+// --- [辅助] 获取文件后缀 ---
+function getFileExt(path) {
+  if (!path) return '';
+  const parts = path.split('.');
+  return parts[parts.length - 1].toUpperCase();
+}
+
+// 1. 获取资源列表 (修改：学生过滤隐藏资源)
+function getResourceList() {
+  listResource({ courseId: course.value.courseId }).then(response => {
+    let rows = response.rows;
+    // 如果不是老师，只显示 status 为 '0' 的
+    if (!isTeacher.value) {
+      rows = rows.filter(item => item.status === '0');
+    }
+    resourceList.value = rows;
+  });
+}
+
+// 2. 打开上传弹窗 (重置)
+function openResourceUpload() {
+  resourceForm.value = {
+    courseId: course.value.courseId,
+    resourceName: '',
+    filePath: '',
+    status: '0'
+  };
+  resourceUploadOpen.value = true;
+}
+
+// [新增] 切换状态
+function handleStatusChange(row) {
+  const text = row.status === '0' ? '发布' : '隐藏';
+  // 乐观更新：UI已经变了，发送请求。如果失败再变回来
+  updateResource({ resourceId: row.resourceId, status: row.status }).then(() => {
+    ElMessage.success(`已${text}该资源`);
+  }).catch(() => {
+    // 失败回滚
+    row.status = row.status === '0' ? '1' : '0';
+  });
+}
+
+// [新增] 预览逻辑
+function handlePreview(row) {
+  const ext = getFileExt(row.filePath).toLowerCase();
+  // 拼接完整URL (假设你的 RuoYiConfig.profile 映射了 /dev-api/profile)
+  // 注意：这里需要根据你的实际环境地址拼接
+  const baseUrl = import.meta.env.VITE_APP_BASE_API;
+  const fullUrl = baseUrl + row.filePath;
+
+  previewTitle.value = row.resourceName;
+  previewUrl.value = fullUrl;
+
+  if (['mp4', 'webm', 'ogg'].includes(ext)) {
+    previewType.value = 'video';
+  } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+    previewType.value = 'image';
+  } else if (['pdf'].includes(ext)) {
+    previewType.value = 'pdf';
+  } else {
+    // Word/PPT/Excel 等浏览器无法直接预览
+    previewType.value = 'other';
+  }
+
+  previewOpen.value = true;
+}
+
+// 3. 文件上传后的回调（为了自动回填文件名，提升体验）
+// 注意：这取决于你的 FileUpload 组件怎么写的，通常它v-model绑定的是路径
+// 如果组件不支持抛出文件名，这一步可以省略，让老师手填
+function handleFileChange(val) {
+  // 简单的自动填充逻辑：如果名称为空，尝试从路径截取文件名（仅作辅助）
+  if (!resourceForm.value.resourceName && val) {
+    const fileName = val.split('/').pop();
+    // 去掉 UUID 前缀 (若依上传通常会加 uuid_filename)
+    resourceForm.value.resourceName = fileName.substring(fileName.indexOf('_') + 1) || fileName;
+  }
+}
+
+// 4. 提交保存
+function submitUploadResource() {
+  proxy.$refs["uploadResourceRef"].validate(valid => {
+    if (valid) {
+      // 1. 获取完整路径中的文件名
+      // 例如路径: /profile/upload/2026/01/09/测试文件A_202601091230.txt
+      const path = resourceForm.value.filePath;
+      const fileNameWithTimestamp = path.split('/').pop(); // 拿到 "测试文件A_202601091230.txt"
+
+      // 2. 提取文件后缀 (例如 .txt)
+      const lastDotIndex = fileNameWithTimestamp.lastIndexOf('.');
+      let nameBody = fileNameWithTimestamp;
+      if (lastDotIndex > -1) {
+        nameBody = fileNameWithTimestamp.substring(0, lastDotIndex); // 拿到 "测试文件A_202601091230"
+      }
+
+      // 3. 【核心修改】处理下划线逻辑
+      // 现在的规则是：名字_时间戳。我们要去掉最后一个下划线及其后面的内容
+      const lastUnderscoreIndex = nameBody.lastIndexOf('_');
+
+      if (lastUnderscoreIndex > -1) {
+        // 截取从 0 到 最后一个下划线 的部分
+        resourceForm.value.resourceName = nameBody.substring(0, lastUnderscoreIndex);
+      } else {
+        // 如果没有下划线，就直接用文件名
+        resourceForm.value.resourceName = nameBody;
+      }
+
+      // 发送请求
+      addResource(resourceForm.value).then(() => {
+        ElMessage.success("上传成功");
+        resourceUploadOpen.value = false;
+        getResourceList();
+      });
+    }
+  });
+}
+
+// // 5. 下载文件
+// function handleDownload(row) {
+//   // 调用后端下载接口，或者直接访问静态资源
+//   // 建议使用若依通用的 download 方法
+//   proxy.$download.resource(row.filePath);
+//   // 或者如果你的后端实现了计数接口：
+//   // downloadResource(row.resourceId).then(res => { blob保存... })
+// }
+
+// 5. 下载文件 (已修改为：后端计数 + 流式下载)
+function handleDownload(row) {
+  // 1. 开启 Loading 遮罩，防止用户重复点击
+  proxy.$modal.loading("正在下载资源，请稍候...");
+
+  // 2. 调用后端接口 (传入 resourceId 而不是 filePath)
+  downloadResource(row.resourceId).then(res => {
+    // 3. 处理文件流 (Blob)
+    const blob = new Blob([res]);
+
+    // 4. 决定下载时的文件名
+    // 优先使用原始文件名 (originName)，如果没有则使用资源标题 (resourceName)
+    const fileName = row.originName || row.resourceName || "download_file";
+
+    // 5. 创建临时的 <a> 标签触发浏览器下载
+    const link = document.createElement('a');
+    const url = window.URL.createObjectURL(blob);
+    link.href = url;
+    link.download = fileName; // 设置文件名
+    link.style.display = 'none';
+
+    document.body.appendChild(link);
+    link.click(); // 模拟点击
+
+    // 6. 清理内存和 DOM
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(link);
+
+    // 7. 关闭 Loading 并提示成功
+    proxy.$modal.closeLoading();
+    proxy.$modal.msgSuccess("下载已开始");
+
+    //(可选) 刷新列表，这样你能立刻看到下载次数 +1
+    getResourceList();
+
+  }).catch((err) => {
+    // 处理错误
+    proxy.$modal.closeLoading();
+    console.error("下载出错:", err);
+    proxy.$modal.msgError("下载失败，请检查文件是否存在");
+  });
+}
+
+// 6. 删除文件
+function handleDeleteResource(row) {
+  ElMessageBox.confirm('确认删除该资源吗?', '提示', {
+    type: 'warning'
+  }).then(() => {
+    delResource(row.resourceId).then(() => {
+      ElMessage.success("删除成功");
+      getResourceList();
+    });
+  });
+}
+
+
+
+// ==================== 实验模块 ====================
+const experimentList = ref([])
+const experimentOpen = ref(false)
+const experimentForm = ref({})
+const experimentRef = ref(null)
+const experimentRules = {
+  experimentName: [{ required: true, message: '请输入实验名称', trigger: 'blur' }]
+}
+
+// 获取实验列表
+function getExperimentList() {
+  listExperiment({ courseId: course.value.courseId }).then(res => {
+    let rows = res.rows || []
+    // 学生只能看到已发布的实验
+    if (!isTeacher.value) {
+      rows = rows.filter(item => item.status === '1')
+    }
+    experimentList.value = rows
+  })
+}
+
+// 打开实验弹窗
+function openExperimentDialog(exp) {
+  if (exp) {
+    experimentForm.value = { ...exp }
+  } else {
+    experimentForm.value = {
+      courseId: course.value.courseId,
+      experimentName: '',
+      description: '',
+      testInput: '',
+      testOutput: '',
+      status: '0',
+      deadline: null
+    }
+  }
+  experimentOpen.value = true
+}
+
+// 保存实验
+function submitExperiment() {
+  experimentRef.value.validate(valid => {
+    if (valid) {
+      if (experimentForm.value.experimentId) {
+        updateExperiment(experimentForm.value).then(() => {
+          ElMessage.success('更新成功')
+          experimentOpen.value = false
+          getExperimentList()
+        })
+      } else {
+        addExperiment(experimentForm.value).then(() => {
+          ElMessage.success('创建成功')
+          experimentOpen.value = false
+          getExperimentList()
+        })
+      }
+    }
+  })
+}
+
+// 删除实验
+function handleDeleteExperiment(exp) {
+  ElMessageBox.confirm('确认删除该实验吗?', '提示', { type: 'warning' }).then(() => {
+    delExperiment(exp.experimentId).then(() => {
+      ElMessage.success('删除成功')
+      getExperimentList()
+    })
+  })
+}
+
+// 跳转到实验编码页面
+function goToExperimentCoding(experimentId) {
+  router.push(`/edu/experiment/coding/${experimentId}`)
+}
+
+// ==================== 教师查看提交记录 ====================
+const submissionDialogOpen = ref(false)
+const submissionList = ref([])
+const currentExperimentName = ref('')
+
+function viewExperimentSubmissions(exp) {
+  currentExperimentName.value = exp.experimentName
+  getAllSubmissions(exp.experimentId).then(res => {
+    submissionList.value = res.data || []
+    submissionDialogOpen.value = true
+  })
+}
+
+// 评测结果翻译
+const resultMap = {
+  'Accepted': '通过',
+  'Wrong Answer': '答案错误',
+  'Compilation Error': '编译错误',
+  'Runtime Error': '运行时错误',
+  'Time Limit Exceeded': '超时',
+  'Memory Limit Exceeded': '内存超限'
+}
+
+function translateResult(result) {
+  return resultMap[result] || result
+}
+
+function getSubmissionTagType(result) {
+  if (result === 'Accepted') return 'success'
+  if (result === 'Wrong Answer' || result?.includes('Error')) return 'danger'
+  if (result === 'Time Limit Exceeded') return 'warning'
+  return 'info'
+}
+
+// ==================== 实验模块结束 ====================
+// ==================== 考试模块 START ====================
+// 引入 API (假设你已经创建了对应的 api js文件)
+import {
+  listExam,
+  getExam,
+  addExam,
+  updateExam,
+  delExam,
+  publishExam,
+  listQuestion,
+  startExam,
+  submitExamPaper,
+  recordCheat,
+  listExamRecord, getRecordDetail, gradeExam
+} from "@/api/edu/exam";
+const resourceEditOpen = ref(false); // 如果没有，请补上
+const examList = ref([]);
+const examDialogOpen = ref(false);
+const bankDialogOpen = ref(false);
+const examForm = ref({
+  questionList: []
+});
+const examRules = {
+  title: [{ required: true, message: "请输入考试名称", trigger: "blur" }],
+  endTime: [{ required: true, message: "结束时间不能为空", trigger: "blur" }]
+};
+// 控制按钮的加载状态，防止重复点击
+const buttonLoading = ref(false);
+
+// 题库相关
+const bankQuestionList = ref([]);
+const selectedBankQuestions = ref([]);
+const qSearchTags = ref("");
+
+// 阅卷相关变量
+const markingOpen = ref(false);
+const markingList = ref([]);
+const currentExamId = ref(null);
+const markingLoading = ref(false);
+
+// 阅卷详情弹窗控制
+const gradingDrawerOpen = ref(false);
+const currentRecordId = ref(null);
+const studentAnswerList = ref([]);
+const teacherComment = ref("");
+
+// 打开打分界面
+function handleGrade(row) {
+  currentRecordId.value = row.id;
+  teacherComment.value = row.teacherComment || "";
+
+  // 加载答题详情
+  getRecordDetail(row.id).then(res => {
+    studentAnswerList.value = res.data;
+    gradingDrawerOpen.value = true;
+  });
+}
+
+// 提交分数
+function submitGrade() {
+  // 【关键修改】不再过滤 params.questionType，也不需要 params
+  // 直接把所有题目的 id 和 score 传回去，让后端重算总分
+  const allAnswers = studentAnswerList.value.map(item => ({
+      id: item.id,
+      score: item.score
+  }));
+
+  const data = {
+    recordId: currentRecordId.value,
+    answers: allAnswers,
+    teacherComment: teacherComment.value
+  };
+
+  gradeExam(data).then(() => {
+    ElMessage.success("阅卷完成，成绩已发布！");
+    gradingDrawerOpen.value = false;
+    loadMarkingList(); // 刷新列表
+  });
+}
+
+// ✅ 这就是你报错缺少的函数
+function handleMarkExam(exam) {
+  currentExamId.value = exam.id;
+  markingOpen.value = true;
+  loadMarkingList();
+}
+
+// 加载提交记录
+function loadMarkingList() {
+  markingLoading.value = true;
+  listExamRecord({ examId: currentExamId.value }).then(res => {
+    markingList.value = res.rows;
+    markingLoading.value = false;
+  });
+}
+
+// 格式化状态
+function getRecordStatus(status) {
+  const map = { '0': '未开始', '1': '进行中', '2': '已提交', '3': '已阅卷' };
+  return map[status] || '未知';
+}
+
+// 监听菜单切换
+watch(activeMenu, (val) => {
+  if (val === 'exam') {
+    getExamList();
+  }
+});
+
+// 获取考试列表
+function getExamList() {
+  listExam({ courseId: courseId }).then(res => {
+    examList.value = res.rows || [];
+  });
+}
+
+// 打开新建考试
+function openExamDialog() {
+  examForm.value = {
+    courseId: courseId,
+    title: "",
+    duration: undefined, // undefined 代表空，即不限时
+    description: "",
+    questionList: [] // 存放选中的题目
+  };
+  examDialogOpen.value = true;
+}
+
+// 编辑考试
+function handleEditExam(exam) {
+  console.log("1. 点击了编辑按钮，考试ID:", exam.id);
+
+  // 先重置表单，防止残留
+  examForm.value = { questionList: [] };
+
+  getExam(exam.id).then(res => {
+    console.log("2. 后端返回详情:", res);
+    examForm.value = res.data;
+
+    // 确保题目列表是数组，防止报错
+    if (!examForm.value.questionList) {
+      examForm.value.questionList = [];
+    }
+
+    // 打开弹窗
+    examDialogOpen.value = true;
+    console.log("3. 弹窗变量已设为 true");
+  }).catch(err => {
+    console.error("获取详情失败:", err);
+    ElMessage.error("无法获取试卷详情，请检查后端");
+  });
+}
+
+// 打开题库选择
+function openQuestionBankDialog() {
+  bankDialogOpen.value = true;
+  searchQuestions();
+}
+
+// 搜索题库
+function searchQuestions() {
+  listQuestion({ tags: qSearchTags.value, teacherId: userStore.id }).then(res => {
+    bankQuestionList.value = res.rows || [];
+  });
+}
+
+// 题库勾选
+function handleQSelection(selection) {
+  selectedBankQuestions.value = selection;
+}
+
+// 确认添加题目
+function confirmAddQuestions() {
+  // 过滤掉已经存在的题目
+  const currentIds = examForm.value.questionList.map(q => q.id);
+  const newQuestions = selectedBankQuestions.value
+    .filter(q => !currentIds.includes(q.id))
+    .map(q => ({
+      ...q,
+      questionId: q.id, // 关联ID
+      score: 5 // 默认分值
+    }));
+
+  examForm.value.questionList.push(...newQuestions);
+  bankDialogOpen.value = false;
+  selectedBankQuestions.value = [];
+}
+
+// 移除题目
+function removeQuestion(index) {
+  examForm.value.questionList.splice(index, 1);
+}
+
+// 计算总分
+function calculateTotalScore() {
+  return examForm.value.questionList.reduce((sum, q) => sum + (q.score || 0), 0);
+}
+
+// 提交考试保存
+function submitExam() {
+  proxy.$refs["examRef"].validate(valid => {
+    if (valid) {
+      // 校验题目
+      if (!examForm.value.questionList || examForm.value.questionList.length === 0) {
+        ElMessage.warning("请至少添加一道题目");
+        return;
+      }
+
+      // 1. 开启 Loading，锁住按钮
+      buttonLoading.value = true;
+
+      // 定义请求 Promise
+      let requestPromise;
+
+      if (examForm.value.id) {
+        requestPromise = updateExam(examForm.value);
+      } else {
+        requestPromise = addExam(examForm.value);
+      }
+
+      // 2. 发送请求
+      requestPromise.then(() => {
+        ElMessage.success(examForm.value.id ? "修改成功" : "创建成功");
+        examDialogOpen.value = false;
+        getExamList(); // 刷新列表
+      }).catch(() => {
+        // 失败时不需做特殊处理，loading 会在 finally 关闭
+      }).finally(() => {
+        // 3. 无论成功还是失败，都关闭 Loading，解锁按钮
+        buttonLoading.value = false;
+      });
+    }
+  });
+}
+
+// 教师发布考试
+function handlePublishExam(exam) {
+  ElMessageBox.confirm('发布后学生将可见，且题目不可再增删，确认发布？', '提示').then(() => {
+    publishExam(exam.id).then(() => {
+      ElMessage.success("发布成功");
+      getExamList();
+    });
+  });
+}
+
+// 学生开始考试 (跳转到独立的答题页面)
+function handleStartExam(exam) {
+  // 校验时间等逻辑...
+  router.push(`/edu/exam/taking/${exam.id}`);
+}
+
+// 辅助函数
+function getQuestionType(type) {
+  const map = { '1': '单选', '2': '多选', '3': '判断', '4': '简答' };
+  return map[type] || '未知';
+}
+
+function getExamStatusText(exam) {
+  if (exam.status === '0') return '未发布';
+  const now = new Date();
+  if (exam.endTime && new Date(exam.endTime) < now) return '已截止';
+  return '进行中';
+}
+
+function getExamStatusTag(exam) {
+  if (exam.status === '0') return 'info';
+  if (getExamStatusText(exam) === '已截止') return 'danger';
+  return 'success';
+}
+
+function canStartExam(exam) {
+  if (exam.status !== '1') return false;
+  // 这里还可以加很多判断：是否已交卷、是否过期等
+  return true;
+}
+
+function getStudentExamBtnText(exam) {
+    if (exam.status !== '1') return '未开始';
+    // 实际逻辑应该判断 exam_record 的状态
+    return '开始答题';
+}
+
+// 删除考试按钮操作
+function handleDeleteExam(row) {
+  const examIds = row.id || ids.value; // 支持单个删除或批量删除
+  ElMessageBox.confirm('是否确认删除考试编号为"' + examIds + '"的数据项？', "系统提示", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(function() {
+    return delExam(examIds);
+  }).then(() => {
+    getExamList(); // 刷新列表
+    ElMessage.success("删除成功");
+  }).catch(() => {});
+}
+
+// ==================== 考试模块 END ====================
 
 // Invite Logic
 const inviteOpen = ref(false)
@@ -1448,12 +2283,12 @@ const buildTreeData = () => {
                 raw: c,
                 children: []
             }
-            
+
             // Add sub-chapters
             if (c.children && c.children.length > 0) {
                 node.children.push(...process(c.children))
             }
-            
+
             // Add resources
             if (c.resources && c.resources.length > 0) {
                 const resourceNodes = c.resources.map(v => ({
@@ -1464,7 +2299,7 @@ const buildTreeData = () => {
                 }))
                 node.children.push(...resourceNodes)
             }
-            
+
             return node
         })
     }
@@ -1636,7 +2471,7 @@ const getSubmissionGrade = (hw) => {
 }
 
 const openHomeworkDialog = () => {
-  homeworkForm.value = { 
+  homeworkForm.value = {
     courseId: courseId,
     status: '0',
     startTime: null,
@@ -1739,7 +2574,7 @@ const openSubmitDialog = (hw) => {
         if (sub.imageUrl) {
             combinedUrl = combinedUrl ? (combinedUrl + ',' + sub.imageUrl) : sub.imageUrl
         }
-        
+
         submitForm.value = {
             id: sub.id,
             homeworkId: hw.id,
@@ -2041,7 +2876,7 @@ const getFileName = (url) => {
     background: #f5f7fa;
     padding: 2px 6px;
     border-radius: 4px;
-    
+
   }
   
   .user-cell {
@@ -2164,7 +2999,7 @@ const getFileName = (url) => {
       color: #606266;
       font-size: 14px;
       transition: color 0.3s;
-      
+
       &:hover {
         color: #409EFF;
       }
@@ -2427,7 +3262,7 @@ const getFileName = (url) => {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  
+
   .homework-item {
       background: #fff;
       border: 1px solid #ebeef5;
@@ -2438,7 +3273,7 @@ const getFileName = (url) => {
       transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
       position: relative;
-      
+
       &:hover {
         transform: translateY(-2px);
         box-shadow: 0 8px 20px rgba(0,0,0,0.08);
@@ -2448,25 +3283,25 @@ const getFileName = (url) => {
       &.status-0 .homework-left-border { background: #909399; } /* Draft */
       &.status-1 .homework-left-border { background: #409EFF; } /* Published */
       &.status-2 .homework-left-border { background: #F56C6C; } /* Closed */
-      
+
       .homework-left-border {
           width: 4px;
           background: #dcdfe6;
       }
-      
+
       .homework-main {
         flex: 1;
         padding: 20px 0 20px 20px;
         margin-right: 20px;
         display: flex;
         flex-direction: column;
-        
+
         .homework-header {
             display: flex;
             align-items: center;
             gap: 12px;
             margin-bottom: 12px;
-            
+
             .homework-title {
               font-size: 18px;
               font-weight: 600;
@@ -2474,13 +3309,13 @@ const getFileName = (url) => {
               margin: 0;
             }
         }
-        
+
         .homework-meta {
             display: flex;
             gap: 16px;
             margin-bottom: 16px;
             flex-wrap: wrap;
-            
+
             .meta-item {
                 display: flex;
                 align-items: center;
@@ -2490,14 +3325,14 @@ const getFileName = (url) => {
                 background: #f4f4f5;
                 padding: 4px 10px;
                 border-radius: 4px;
-                
+
                 &.deadline {
                     color: #e6a23c;
                     background: #fdf6ec;
                 }
             }
         }
-        
+
         .homework-content-preview {
           color: #606266;
           font-size: 14px;
@@ -2510,7 +3345,7 @@ const getFileName = (url) => {
           -webkit-box-orient: vertical;
         }
       }
-      
+
       .homework-right {
          padding: 20px;
          display: flex;
@@ -2520,22 +3355,22 @@ const getFileName = (url) => {
          border-left: 1px solid #f2f6fc;
          min-width: 200px;
          background: #fafafa;
-         
+
          .action-buttons {
              display: flex;
              gap: 8px;
          }
-         
+
          .student-status-area {
              margin-bottom: 15px;
              text-align: right;
-             
+
              .status-indicator {
                  display: flex;
                  align-items: center;
                  justify-content: flex-end;
                  gap: 8px;
-                 
+
                  &.submitted {
                      .status-icon {
                          color: #67c23a;
@@ -2555,7 +3390,7 @@ const getFileName = (url) => {
                              }
                      }
                  }
-                 
+
                  &.not-submitted {
                      .status-dot {
                          width: 8px;
@@ -2572,11 +3407,11 @@ const getFileName = (url) => {
          }
       }
     }
-    
+
     /* View Submission Dialog Styles */
     .score-card {
         padding: 0 10px;
-        
+
         .score-header {
             display: flex;
             justify-content: space-between;
@@ -2585,29 +3420,29 @@ const getFileName = (url) => {
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
-            
+
             &.is-graded {
                 background: linear-gradient(135deg, #f0f9eb 0%, #e1f3d8 100%);
-                
+
                 .score-value { color: #67c23a; }
             }
-            
+
             .score-main {
                 display: flex;
                 flex-direction: column;
-                
+
                 .label {
                     font-size: 13px;
                     color: #909399;
                     margin-bottom: 4px;
                 }
-                
+
                 .score-value {
                     font-size: 36px;
                     font-weight: bold;
                     color: #303133;
                     line-height: 1;
-                    
+
                     .suffix {
                         font-size: 16px;
                         font-weight: normal;
@@ -2617,24 +3452,24 @@ const getFileName = (url) => {
                 }
             }
         }
-        
+
         .submission-info {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
             margin-bottom: 15px;
-            
+
             .info-row {
                 font-size: 13px;
                 color: #606266;
-                
+
                 .label { color: #909399; }
             }
         }
-        
+
         .content-section {
             margin-top: 20px;
-            
+
             .section-title {
                 font-size: 15px;
                 font-weight: bold;
@@ -2643,13 +3478,13 @@ const getFileName = (url) => {
                 border-left: 3px solid #409EFF;
                 padding-left: 10px;
             }
-            
+
             .content-box {
                 background: #f9fafc;
                 padding: 15px;
                 border-radius: 4px;
                 border: 1px solid #e4e7ed;
-                
+
                 .text-content {
                     white-space: pre-wrap;
                     color: #606266;
@@ -2658,10 +3493,10 @@ const getFileName = (url) => {
                     margin-bottom: 10px;
                 }
             }
-            
+
             &.feedback-section {
                 .section-title { border-color: #67c23a; }
-                
+
                 .feedback-box {
                     background: #f0f9eb;
                     border-color: #e1f3d8;
@@ -2682,14 +3517,14 @@ const getFileName = (url) => {
   border-top: 1px solid #ebeef5;
   border-bottom: 1px solid #ebeef5;
   margin: -20px -20px 0; /* Negate dialog padding */
-  
+
   .publish-left {
     flex: 1;
     width: 50%;
     min-width: 0; /* Prevent flex item from expanding due to content */
     padding: 20px;
     overflow-y: auto;
-    
+
     .editor-item {
       margin-bottom: 0;
       :deep(.el-form-item__content) {
@@ -2697,7 +3532,7 @@ const getFileName = (url) => {
       }
     }
   }
-  
+
   .publish-right {
     flex: 1;
     width: 50%;
@@ -2706,7 +3541,7 @@ const getFileName = (url) => {
     border-left: 1px solid #e4e7ed;
     display: flex;
     flex-direction: column;
-    
+
     .preview-header {
       padding: 10px 20px;
       border-bottom: 1px solid #ebeef5;
@@ -2714,19 +3549,19 @@ const getFileName = (url) => {
       justify-content: space-between;
       align-items: center;
       background: #fff;
-      
+
       .preview-label {
         font-weight: bold;
         color: #303133;
         font-size: 14px;
       }
     }
-    
+
     .content-preview-box {
       flex: 1;
       padding: 30px;
       overflow-y: auto;
-      
+
       .preview-title {
         font-size: 22px;
         font-weight: bold;
@@ -2734,7 +3569,7 @@ const getFileName = (url) => {
         margin-bottom: 10px;
         text-align: center;
       }
-      
+
       .preview-meta {
         display: flex;
         justify-content: center;
@@ -2744,33 +3579,33 @@ const getFileName = (url) => {
         font-size: 13px;
         border-bottom: 1px dashed #ebeef5;
         padding-bottom: 15px;
-        
+
         .meta-item {
           display: flex;
           align-items: center;
           gap: 5px;
-          
+
           &.deadline { color: #e6a23c; }
         }
       }
-      
+
       .preview-body {
         font-size: 15px;
         line-height: 1.8;
         color: #333;
-        
+
         /* Mimic Quill editor output styles */
         p { margin-bottom: 1em; }
-        :deep(img) { 
-          max-width: 80%; 
-          max-height: 400px; 
-          height: auto; 
-          display: block; 
-          margin: 10px auto; 
+        :deep(img) {
+          max-width: 80%;
+          max-height: 400px;
+          height: auto;
+          display: block;
+          margin: 10px auto;
           border-radius: 4px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        
+
         .placeholder {
           color: #ccc;
           text-align: center;
@@ -2799,7 +3634,7 @@ const getFileName = (url) => {
   box-shadow: inset 0 0 20px rgba(0,0,0,0.02);
   overflow: hidden;
   position: relative;
-  
+
   &.is-video {
     background: #000;
   }
@@ -2810,12 +3645,12 @@ const getFileName = (url) => {
     background: #fff;
     box-shadow: 0 4px 16px rgba(0,0,0,0.05);
   }
-  
+
   .preview-scroller {
     width: 100%;
     height: 100%;
     overflow-y: auto;
-    
+
     &::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -2828,7 +3663,7 @@ const getFileName = (url) => {
       background: transparent;
     }
   }
-  
+
   /* Center content in scroller for video/default */
   &:not(.is-office) .preview-scroller {
       display: flex;
@@ -2841,12 +3676,12 @@ const getFileName = (url) => {
     bottom: 40px;
     right: 40px;
     z-index: 100;
-    
+
     .pagination-wrapper {
       display: flex;
       flex-direction: column;
       gap: 15px;
-      
+
       .el-button {
         margin: 0;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -2856,13 +3691,13 @@ const getFileName = (url) => {
         width: 48px;
         height: 48px;
         transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        
+
         &:hover {
           background-color: rgba(64, 158, 255, 1);
           transform: scale(1.1);
           box-shadow: 0 8px 20px rgba(64, 158, 255, 0.3);
         }
-        
+
         &:active {
           transform: scale(0.95);
         }
@@ -2878,5 +3713,115 @@ const getFileName = (url) => {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* 实验列表样式 */
+.experiment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.experiment-card {
+  .exp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .exp-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #303133;
+  }
+
+  .exp-desc {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 15px;
+    line-height: 1.6;
+    max-height: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .exp-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+  }
+
+  .exp-time {
+    font-size: 12px;
+    color: #999;
+  }
+
+  .exp-actions {
+    display: flex;
+    gap: 10px;
+  }
+}
+
+
+
+.exam-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.exam-card {
+  border-radius: 8px;
+}
+
+.exam-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.exam-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.exam-info {
+  display: flex;
+  gap: 20px;
+  color: #666;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.exam-desc {
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 4px;
+  color: #666;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.question-selector {
+  border: 1px solid #eee;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }
 </style>

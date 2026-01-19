@@ -39,11 +39,24 @@ router.beforeEach((to, from, next) => {
         }).catch(err => {
           useUserStore().logOut().then(() => {
             ElMessage.error(err)
-            next({ path: '/' })
+            next({ path: '/login', query: { redirect: to.fullPath } })
+            NProgress.done()
           })
         })
       } else {
-        next()
+        // 确保路由加载完成后再跳转
+        if (usePermissionStore().routes.length === 0) {
+            usePermissionStore().generateRoutes().then(accessRoutes => {
+                accessRoutes.forEach(route => {
+                    if (!isHttp(route.path)) {
+                        router.addRoute(route)
+                    }
+                })
+                next({ ...to, replace: true })
+            })
+        } else {
+            next()
+        }
       }
     }
   } else {

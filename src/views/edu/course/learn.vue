@@ -3,6 +3,11 @@
     <!-- Top Header -->
     <div class="learn-header">
       <div class="header-left">
+        <div class="back-area" @click="goBack">
+          <el-icon><ArrowLeft /></el-icon>
+          <span>返回</span>
+        </div>
+        <div class="divider"></div>
         <div class="logo-area" @click="router.push('/portal')">
           <img src="@/assets/logo/logo.png" alt="logo" class="logo" />
           <span class="platform-name">在线课程平台</span>
@@ -15,7 +20,7 @@
         </div>
       </div>
       <div class="header-right">
-        <el-button v-if="isTeacher" type="primary" plain round size="small" icon="Share" @click="handleInvite" style="margin-right: 15px;">邀请加入</el-button>
+        <el-button v-if="isTeacher" type="primary" plain round size="small" :icon="Share" @click="handleInvite" style="margin-right: 15px;">邀请加入</el-button>
         <div class="user-profile">
           <img :src="userStore.avatar || defaultAvatar" class="user-avatar" />
           <span class="user-name">{{ userStore.name }}</span>
@@ -45,7 +50,7 @@
         <div v-if="activeMenu === 'courseware'" class="content-wrapper">
           <div class="content-header">
             <h2>课件</h2>
-            <el-button v-if="isTeacher" type="primary" size="small" icon="Setting" @click="openChapterManage">管理目录</el-button>
+            <el-button v-if="isTeacher" type="primary" size="small" :icon="Setting" @click="openChapterManage">管理目录</el-button>
           </div>
           
           <div class="chapter-list-container">
@@ -96,7 +101,7 @@
         <div v-else-if="activeMenu === 'announcement'" class="content-wrapper">
           <div class="content-header">
             <h2>公告</h2>
-            <el-button v-if="isTeacher" type="primary" size="small" icon="Plus" @click="openNoticeDialog">发布公告</el-button>
+            <el-button v-if="isTeacher" type="primary" size="small" :icon="Plus" @click="openNoticeDialog">发布公告</el-button>
           </div>
           <div v-if="notices && notices.length > 0" class="notice-list">
              <div v-for="notice in notices" :key="notice.noticeId" class="notice-item">
@@ -106,7 +111,7 @@
                    <div class="notice-time">{{ notice.createTime }}</div>
                 </div>
                 <div v-if="isTeacher" class="notice-action">
-                   <el-button type="danger" link icon="Delete" @click="handleDelNotice(notice)">删除</el-button>
+                   <el-button type="danger" link :icon="Delete" @click="handleDelNotice(notice)">删除</el-button>
                 </div>
              </div>
           </div>
@@ -126,89 +131,13 @@
           </div>
         </div>
         
-        <!-- Resources -->
-        <div v-else-if="activeMenu === 'resources'" class="content-wrapper">
-  <div class="content-header">
-    <h2>教学资源</h2>
-    <el-button v-if="isTeacher" type="primary" size="small" icon="Upload" @click="openResourceUpload">上传资源</el-button>
-  </div>
-
-  <el-table
-    v-if="resourceList && resourceList.length > 0"
-    :data="resourceList"
-    style="width: 100%"
-    :header-cell-style="{background:'#f8f9fa', color:'#606266'}"
-  >
-    <el-table-column label="资源名称" min-width="280">
-      <template #default="scope">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <el-icon :size="20" color="#409EFF" v-if="scope.row.category === 'video'"><VideoPlay /></el-icon>
-          <el-icon :size="20" color="#67C23A" v-else-if="scope.row.category === 'image'"><Picture /></el-icon>
-          <el-icon :size="20" color="#E6A23C" v-else-if="scope.row.category === 'doc'"><Document /></el-icon>
-          <el-icon :size="20" color="#909399" v-else><Files /></el-icon>
-
-          <el-tag size="small" type="info" effect="plain" style="font-family: monospace;">
-            {{ getFileExt(scope.row.filePath) }}
-          </el-tag>
-
-          <span style="font-weight: 500;">{{ scope.row.resourceName }}</span>
-
-          <el-tag v-if="isTeacher && scope.row.status === '1'" type="warning" size="small" effect="dark" style="margin-left: 5px;">
-             隐藏中
-          </el-tag>
-        </div>
-      </template>
-    </el-table-column>
-
-    <el-table-column prop="fileSize" label="大小" width="100" align="center" />
-    <el-table-column prop="createTime" label="上传时间" width="160" align="center" />
-
-    <el-table-column prop="downloadCount" label="下载" width="90" align="center">
-      <template #default="scope">{{ scope.row.downloadCount }} 次</template>
-    </el-table-column>
-
-    <el-table-column v-if="isTeacher" label="状态" width="100" align="center">
-      <template #default="scope">
-        <el-switch
-          v-model="scope.row.status"
-          active-value="0"
-          inactive-value="1"
-          active-text="发布"
-          inactive-text="隐藏"
-          inline-prompt
-          style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-          @change="handleStatusChange(scope.row)"
-        />
-      </template>
-    </el-table-column>
-
-    <el-table-column label="操作" width="220" align="center" fixed="right">
-      <template #default="scope">
-        <el-button link type="success" icon="View" @click="handlePreview(scope.row)">预览</el-button>
-
-        <el-button link type="primary" icon="Download" @click="handleDownload(scope.row)">下载</el-button>
-
-        <el-button
-          v-if="isTeacher"
-          link
-          type="danger"
-          icon="Delete"
-          @click="handleDeleteResource(scope.row)"
-        >删除</el-button>
-      </template>
-    </el-table-column>
-  </el-table>
-
-  <el-empty v-else description="暂无教学资源" />
-        </div>
-
         <!-- Homework -->
         <div v-else-if="activeMenu === 'homework'" class="content-wrapper">
           <div class="content-header">
             <h2>测验与作业</h2>
-            <el-button v-if="isTeacher" type="primary" size="small" icon="Plus" @click="openHomeworkDialog">发布作业</el-button>
+            <el-button v-if="isTeacher" type="primary" size="small" :icon="Plus" @click="openHomeworkDialog">发布作业</el-button>
           </div>
-
+          
           <div v-if="homeworkList && homeworkList.length > 0" class="homework-list">
              <div v-for="hw in homeworkList" :key="hw.id" :class="['homework-item', 'status-' + hw.status]">
                 <div class="homework-left-border"></div>
@@ -219,7 +148,7 @@
                          {{ getHomeworkStatusText(hw.status) }}
                        </el-tag>
                    </div>
-
+                   
                    <div class="homework-meta">
                        <div class="meta-item">
                            <el-icon><Calendar /></el-icon>
@@ -233,13 +162,13 @@
 
                    <!-- Content preview removed as per request -->
                 </div>
-
+                
                 <div class="homework-right">
                    <template v-if="isTeacher">
                        <div class="action-buttons">
-                           <el-button type="primary" link icon="Edit" @click="handleEditHomework(hw)">编辑</el-button>
-                           <el-button type="success" link icon="View" @click="handleViewSubmissions(hw)">查看提交</el-button>
-                           <el-button type="danger" link icon="Delete" @click="handleDelHomework(hw)">删除</el-button>
+                           <el-button type="primary" link :icon="Edit" @click="handleEditHomework(hw)">编辑</el-button>
+                           <el-button type="success" link :icon="View" @click="handleViewSubmissions(hw)">查看提交</el-button>
+                           <el-button type="danger" link :icon="Delete" @click="handleDelHomework(hw)">删除</el-button>
                        </div>
                    </template>
                    <template v-else>
@@ -256,34 +185,34 @@
                                <span class="main-text">未提交</span>
                            </div>
                        </div>
-
+                       
                        <div class="student-actions">
                            <el-tooltip :content="getSubmitTooltip(hw)" :disabled="canSubmit(hw) || (isSubmitted(hw) && canSubmit(hw))" placement="top">
                                <span class="action-wrapper">
-                                   <el-button
+                                   <el-button 
                                     v-if="!isSubmitted(hw)"
-                                    type="primary"
+                                    type="primary" 
                                     round
-                                    icon="Upload"
+                                    :icon="Upload" 
                                     :disabled="!canSubmit(hw)"
                                     @click="openSubmitDialog(hw)"
                                    >提交作业</el-button>
-
-                                   <el-button
+                                   
+                                   <el-button 
                                     v-else-if="canSubmit(hw)"
-                                    type="warning"
+                                    type="warning" 
                                     plain
                                     round
-                                    icon="Edit"
+                                    :icon="Edit" 
                                     @click="openSubmitDialog(hw)"
                                    >修改作业</el-button>
-
-                                   <el-button
+                                   
+                                   <el-button 
                                     v-else
-                                    type="info"
+                                    type="info" 
                                     plain
                                     round
-                                    icon="View"
+                                    :icon="View" 
                                     @click="openViewDialog(hw)"
                                    >查看详情</el-button>
                                </span>
@@ -304,44 +233,11 @@
           <el-empty description="暂无考试" />
         </div>
 
-        <!-- Experiment -->
-        <div v-else-if="activeMenu === 'experiment'" class="content-wrapper">
-          <div class="content-header">
-            <h2>实验</h2>
-            <el-button v-if="isTeacher" type="primary" size="small" icon="Plus" @click="openExperimentDialog()">发布实验</el-button>
-          </div>
-
-          <div v-if="experimentList && experimentList.length > 0" class="experiment-list">
-            <el-card v-for="exp in experimentList" :key="exp.experimentId" class="experiment-card" shadow="hover">
-              <div class="exp-header">
-                <div class="exp-title">{{ exp.experimentName }}</div>
-                <el-tag :type="exp.status === '1' ? 'success' : 'info'" size="small">
-                  {{ exp.status === '1' ? '已发布' : '草稿' }}
-                </el-tag>
-              </div>
-              <div class="exp-desc">{{ exp.description || '暂无描述' }}</div>
-              <div class="exp-footer">
-                <div class="exp-meta">
-                  <span class="exp-time">创建时间: {{ exp.createTime }}</span>
-                  <span v-if="exp.deadline" class="exp-time">截止时间: {{ exp.deadline }}</span>
-                </div>
-                <div class="exp-actions">
-                  <el-button v-if="isTeacher" type="primary" link size="small" @click="openExperimentDialog(exp)">编辑</el-button>
-                  <el-button v-if="isTeacher" type="warning" link size="small" @click="viewExperimentSubmissions(exp)">查看提交</el-button>
-                  <el-button v-if="isTeacher" type="danger" link size="small" @click="handleDeleteExperiment(exp)">删除</el-button>
-                  <el-button v-if="!isTeacher" type="success" size="small" @click="goToExperimentCoding(exp.experimentId)">进入实验</el-button>
-                </div>
-              </div>
-            </el-card>
-          </div>
-          <el-empty v-else description="暂无实验" />
-        </div>
-
         <!-- Members -->
         <div v-else-if="activeMenu === 'members'" class="content-wrapper">
            <div class="content-header">
             <h2>人员管理</h2>
-            <el-button type="primary" size="small" icon="Plus" @click="openStudentAddDialog">添加成员</el-button>
+            <el-button type="primary" size="small" :icon="Plus" @click="openStudentAddDialog">添加成员</el-button>
           </div>
           
           <el-table 
@@ -351,7 +247,7 @@
             :header-cell-style="{background:'#f8f9fa', color:'#606266', fontWeight:'500'}"
             class="member-table"
           >
-            <el-table-column prop="userId" label="学号" width="100" align="center" sortable>
+            <el-table-column prop="userId" label="学号" width="150" align="center" sortable>
               <template #default="scope">
                 <span class="id-cell">{{ scope.row.userId }}</span>
               </template>
@@ -362,7 +258,6 @@
                   <el-avatar :size="40" :src="scope.row.avatar" class="user-avatar">{{ scope.row.nickName ? scope.row.nickName.charAt(0) : 'U' }}</el-avatar>
                   <div class="user-info">
                     <div class="nickname">{{ scope.row.nickName || '未设置昵称' }}</div>
-                    <div class="username">{{ scope.row.userName }}</div>
                   </div>
                 </div>
               </template>
@@ -385,7 +280,7 @@
                   type="danger" 
                   link 
                   size="small" 
-                  icon="Delete"
+                  :icon="Delete"
                   class="action-btn"
                   @click="handleRemoveStudent(scope.row)"
                 >
@@ -395,6 +290,13 @@
             </el-table-column>
           </el-table>
           <el-empty v-else description="暂无课程成员" />
+          <pagination
+            v-show="studentTotal > 0"
+            :total="studentTotal"
+            v-model:page="studentQueryParams.pageNum"
+            v-model:limit="studentQueryParams.pageSize"
+            @pagination="loadStudents"
+          />
         </div>
 
         <!-- Settings -->
@@ -431,8 +333,8 @@
                 </div>
                 
                 <div class="info-actions">
-                  <el-button type="primary" icon="Edit" @click="openEditCourseDialog">编辑课程信息</el-button>
-                  <el-button type="danger" plain icon="Delete" @click="handleDeleteCourse">删除课程</el-button>
+                  <el-button type="primary" :icon="Edit" @click="openEditCourseDialog">编辑课程信息</el-button>
+                  <el-button type="danger" plain :icon="Delete" @click="handleDeleteCourse">删除课程</el-button>
                 </div>
               </div>
             </div>
@@ -445,8 +347,8 @@
     <!-- Chapter Management Dialog -->
     <el-dialog v-model="chapterManageOpen" title="课程目录管理" width="600px">
       <div class="chapter-manage-toolbar">
-        <el-button type="primary" icon="FolderAdd" @click="handleAddChapter()">添加章</el-button>
-        <el-button type="default" icon="Refresh" @click="getChapterList">刷新</el-button>
+        <el-button type="primary" :icon="FolderAdd" @click="handleAddChapter()">添加章</el-button>
+        <el-button type="default" :icon="Refresh" @click="getChapterList">刷新</el-button>
       </div>
       
       <el-tree
@@ -474,7 +376,7 @@
                     type="primary"
                     link
                     size="small"
-                    icon="EditPen"
+                    :icon="EditPen"
                     @click.stop="handleEditChapter(data.raw)"
                   >
                     编辑
@@ -483,7 +385,7 @@
                     type="success"
                     link
                     size="small"
-                    icon="DocumentAdd"
+                    :icon="DocumentAdd"
                     @click.stop="handleAddChapter(data.raw)"
                   >
                     添加子章
@@ -492,7 +394,7 @@
                     type="warning"
                     link
                     size="small"
-                    icon="Document"
+                    :icon="Document"
                     @click.stop="handleAddResource(data.raw)"
                   >
                     添加资源
@@ -501,7 +403,7 @@
                     type="danger"
                     link
                     size="small"
-                    icon="DeleteFilled"
+                    :icon="DeleteFilled"
                     @click.stop="handleDeleteChapter(data.raw)"
                   >
                     删除
@@ -512,7 +414,7 @@
                     type="primary"
                     link
                     size="small"
-                    icon="EditPen"
+                    :icon="EditPen"
                     @click.stop="handleEditResource(data.raw)"
                   >
                     编辑
@@ -521,7 +423,7 @@
                     type="danger"
                     link
                     size="small"
-                    icon="DeleteFilled"
+                    :icon="DeleteFilled"
                     @click.stop="handleDeleteResource(data.raw)"
                   >
                     删除
@@ -559,9 +461,9 @@
           <el-input v-model="resourceForm.resourceName" placeholder="请输入资源名称" />
         </el-form-item>
         <el-form-item label="资源文件" prop="url">
-           <FileUpload
-             v-model="resourceForm.url"
-             :limit="1"
+           <FileUpload 
+             v-model="resourceForm.url" 
+             :limit="1" 
              :file-type="['mp4', 'webm', 'ogg', 'mov', 'avi', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif']"
              :is-show-tip="false"
            />
@@ -585,7 +487,7 @@
             <div class="search-bar">
               <el-input v-model="studentSearchQuery" placeholder="输入ID或用户名搜索" @keyup.enter="searchStudent" clearable>
                 <template #append>
-                  <el-button @click="searchStudent" icon="Search" />
+                  <el-button @click="searchStudent" :icon="Search" />
                 </template>
               </el-input>
             </div>
@@ -730,46 +632,6 @@
       </template>
     </el-dialog>
 
-    <!-- Add Resource Dialog -->
-    <el-dialog v-model="previewOpen" :title="previewTitle" width="70%" top="5vh" append-to-body>
-    <div class="preview-container" style="text-align: center; min-height: 400px; display: flex; align-items: center; justify-content: center; background: #000;">
-      <video v-if="previewType === 'video'" :src="previewUrl" controls style="max-width: 100%; max-height: 70vh;"></video>
-      <img v-if="previewType === 'image'" :src="previewUrl" style="max-width: 100%; max-height: 70vh; object-fit: contain;">
-      <iframe v-if="previewType === 'pdf'" :src="previewUrl" style="width: 100%; height: 70vh; border: none;"></iframe>
-      <div v-if="previewType === 'other'" style="color: #fff;">
-        <el-icon :size="50"><Warning /></el-icon>
-        <p>该文件格式不支持在线预览，请下载后查看</p>
-      </div>
-    </div>
-  </el-dialog>
-
-  <el-dialog v-model="resourceUploadOpen" title="上传教学资源" width="500px">
-    <el-form :model="resourceForm" ref="uploadResourceRef" label-width="80px" :rules="resourceRules">
-      <el-form-item label="文件" prop="filePath">
-        <file-upload
-          v-model="resourceForm.filePath"
-          :limit="1"
-          :fileSize="500"
-          :fileType="['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'pdf', 'mp4', 'avi', 'mov', 'flv', 'png', 'jpg', 'jpeg']"
-        />
-        <div style="font-size: 12px; color: #999; line-height: 1.5; margin-top: 5px;">
-          文件上传后将自动使用原始文件名作为资源名称
-        </div>
-      </el-form-item>
-
-      <el-form-item label="状态">
-        <el-radio-group v-model="resourceForm.status">
-          <el-radio label="0">立即发布</el-radio>
-          <el-radio label="1">暂存隐藏</el-radio>
-        </el-radio-group>
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <el-button @click="resourceUploadOpen = false">取消</el-button>
-      <el-button type="primary" @click="submitUploadResource">确定上传</el-button>
-    </template>
-  </el-dialog>
-
     <!-- Homework Publish/Edit Dialog -->
     <el-dialog v-model="homeworkOpen" :title="homeworkForm.id ? '编辑作业' : '发布作业'" width="1200px" append-to-body top="5vh">
       <div class="homework-publish-container">
@@ -816,7 +678,7 @@
             </el-form-item>
           </el-form>
         </div>
-
+        
         <div class="publish-right">
           <div class="preview-header">
             <span class="preview-label">内容预览</span>
@@ -832,7 +694,7 @@
           </div>
         </div>
       </div>
-
+      
       <template #footer>
         <div class="dialog-footer" style="text-align: center;">
           <el-button @click="homeworkOpen = false" size="large">取 消</el-button>
@@ -914,14 +776,14 @@
               <div class="section-title">我的作业</div>
               <div class="content-box">
                   <div class="text-content">{{ viewSubmissionData.content || '（无文本内容）' }}</div>
-
+                  
                   <!-- Merged Display for FileUrl (Images + Files) -->
                   <div v-if="viewSubmissionData.fileUrl" class="attachments-container">
                       <template v-for="(url, index) in viewSubmissionData.fileUrl.split(',')" :key="index">
                           <!-- Image Display -->
                           <div v-if="isImageUrl(url)" class="image-item" style="display: inline-block; margin-right: 10px; margin-bottom: 10px;">
-                              <el-image
-                                :src="url"
+                              <el-image 
+                                :src="url" 
                                 :preview-src-list="[url]"
                                 style="width: 100px; height: 100px; border-radius: 4px;"
                                 fit="cover"
@@ -929,7 +791,7 @@
                           </div>
                           <!-- File Download -->
                           <div v-else class="file-item" style="margin-bottom: 5px;">
-                              <el-link :href="url" target="_blank" type="primary" icon="Paperclip">
+                              <el-link :href="url" target="_blank" type="primary" :icon="Paperclip">
                                   {{ getFileName(url) }}
                               </el-link>
                           </div>
@@ -954,124 +816,85 @@
     </el-dialog>
 
     <!-- Resource Preview Dialog -->
-    <el-dialog
-      v-model="resourcePlayOpen"
-      :title="currentResource.resourceName"
-      width="80%"
-      top="5vh"
-      destroy-on-close
-      center
+    <el-dialog 
+      v-model="resourcePlayOpen" 
+      :title="currentResource.resourceName" 
+      width="90%" 
+      top="2vh"
+      destroy-on-close 
+      center 
       append-to-body
       class="resource-preview-dialog"
     >
-      <div class="preview-container" :class="{'is-video': isVideoUrl(currentResource.url)}">
-         <video
-            v-if="isVideoUrl(currentResource.url)"
-            :src="getFullUrl(currentResource.url)"
-            controls
-            autoplay
-            style="width: 100%; max-height: 75vh; display: block;"
-         >
-            您的浏览器不支持视频播放。
-         </video>
-         <el-image
-            v-else-if="isImageUrl(currentResource.url)"
-            :src="getFullUrl(currentResource.url)"
-            :preview-src-list="[getFullUrl(currentResource.url)]"
-            fit="contain"
-            style="max-height: 75vh; max-width: 100%;"
-         />
-         <iframe
-            v-else-if="isPdfUrl(currentResource.url) || isTextUrl(currentResource.url)"
-            :src="getFullUrl(currentResource.url)"
-            style="width: 100%; height: 75vh; border: none; background: #fff;"
-         ></iframe>
-         <iframe
-            v-else-if="isOfficeUrl(currentResource.url)"
-            :src="'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(getFullUrl(currentResource.url))"
-            style="width: 100%; height: 75vh; border: none; background: #fff;"
-         ></iframe>
-         <div v-else class="resource-preview">
-            <el-icon size="60"><Document /></el-icon>
-            <p style="margin-top: 20px;">该资源格式暂不支持在线预览，请下载后查看</p>
+      <div class="preview-container" :class="{'is-video': isVideoUrl(currentResource.url), 'is-office': isOfficeUrl(currentResource.url) || isPdfUrl(currentResource.url)}">
+         <div class="preview-scroller" ref="previewScrollerRef">
+            <video 
+                v-if="isVideoUrl(currentResource.url)" 
+                :src="getFullUrl(currentResource.url)" 
+                controls 
+                autoplay
+                style="width: 100%; max-height: 75vh; display: block;"
+            >
+                您的浏览器不支持视频播放。
+            </video>
+            <el-image
+                v-else-if="isImageUrl(currentResource.url)"
+                :src="getFullUrl(currentResource.url)"
+                :preview-src-list="[getFullUrl(currentResource.url)]"
+                fit="contain"
+                style="max-height: 75vh; max-width: 100%;"
+            />
+            <iframe
+                v-else-if="isTextUrl(currentResource.url)"
+                :src="getFullUrl(currentResource.url)"
+                style="width: 100%; height: 75vh; border: none; background: #fff;"
+            ></iframe>
+            <VueOfficePdf
+                v-else-if="isPdfUrl(currentResource.url)"
+                :src="getFullUrl(currentResource.url)"
+                style="width: 100%;"
+            />
+            <VueOfficeDocx
+                v-else-if="isWordUrl(currentResource.url)"
+                :src="getFullUrl(currentResource.url)"
+                style="width: 100%;"
+            />
+            <VueOfficeExcel
+                v-else-if="isExcelUrl(currentResource.url)"
+                :src="getFullUrl(currentResource.url)"
+                style="height: 75vh; width: 100%;"
+            />
+            <VueOfficePptx
+                v-else-if="isPptUrl(currentResource.url)"
+                :src="getFullUrl(currentResource.url)"
+                style="width: 100%;"
+            />
+            <div v-else class="resource-preview">
+                <el-icon size="60"><Document /></el-icon>
+                <p style="margin-top: 20px;">该资源格式暂不支持在线预览，请下载后查看</p>
+            </div>
+         </div>
+
+         <!-- Pagination Controls -->
+         <div class="preview-pagination" v-if="isOfficeUrl(currentResource.url) || isPdfUrl(currentResource.url)">
+            <div class="pagination-wrapper">
+              <el-tooltip content="上一页" placement="left" :show-after="500">
+                <el-button type="primary" :icon="ArrowUp" @click="prevPage" circle size="large" />
+              </el-tooltip>
+              <el-tooltip content="下一页" placement="left" :show-after="500">
+                <el-button type="primary" :icon="ArrowDown" @click="nextPage" circle size="large" />
+              </el-tooltip>
+            </div>
          </div>
       </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="downloadResource(currentResource.url)" icon="Download">
+          <el-button type="primary" @click="downloadResource(currentResource.url)" :icon="Download">
             下载资源
           </el-button>
         </div>
       </template>
     </el-dialog>
-
-  <!-- Experiment Dialog -->
-  <el-dialog v-model="experimentOpen" :title="experimentForm.experimentId ? '编辑实验' : '发布实验'" width="600px">
-    <el-form :model="experimentForm" ref="experimentRef" label-width="80px" :rules="experimentRules">
-      <el-form-item label="实验名称" prop="experimentName">
-        <el-input v-model="experimentForm.experimentName" placeholder="请输入实验名称" />
-      </el-form-item>
-      <el-form-item label="实验描述" prop="description">
-        <el-input v-model="experimentForm.description" type="textarea" :rows="4" placeholder="请输入实验描述和要求" />
-      </el-form-item>
-      <el-form-item label="测试输入" prop="testInput">
-        <el-input v-model="experimentForm.testInput" type="textarea" :rows="3" placeholder="程序的标准输入（可选）" />
-      </el-form-item>
-      <el-form-item label="期望输出" prop="testOutput">
-        <el-input v-model="experimentForm.testOutput" type="textarea" :rows="3" placeholder="程序的期望输出（用于判题）" />
-      </el-form-item>
-      <el-form-item label="状态">
-        <el-radio-group v-model="experimentForm.status">
-          <el-radio label="0">草稿</el-radio>
-          <el-radio label="1">发布</el-radio>
-        </el-radio-group>
-      </el-form-item>
-      <el-form-item label="截止时间">
-        <el-date-picker
-          v-model="experimentForm.deadline"
-          type="datetime"
-          placeholder="选择截止时间"
-          value-format="YYYY-MM-DD HH:mm:ss"
-          style="width: 100%"
-        />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <el-button @click="experimentOpen = false">取消</el-button>
-      <el-button type="primary" @click="submitExperiment">保存</el-button>
-    </template>
-  </el-dialog>
-
-  <!-- Submission Records Dialog -->
-  <el-dialog v-model="submissionDialogOpen" :title="`提交记录 - ${currentExperimentName}`" width="900px">
-    <el-table :data="submissionList" stripe style="width: 100%">
-      <el-table-column prop="studentId" label="学生ID" width="100" />
-      <el-table-column prop="result" label="评测结果" width="130">
-        <template #default="{ row }">
-          <el-tag :type="getSubmissionTagType(row.result)" size="small">
-            {{ translateResult(row.result) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="submitTime" label="提交时间" width="180" />
-      <el-table-column prop="runTime" label="运行时间" width="100" />
-      <el-table-column prop="memoryUsed" label="内存" width="100" />
-      <el-table-column label="代码" width="80">
-        <template #default="{ row }">
-          <el-popover trigger="click" width="500">
-            <template #reference>
-              <el-button link type="primary" size="small">查看</el-button>
-            </template>
-            <pre style="max-height: 400px; overflow: auto; background: #f5f5f5; padding: 10px; font-family: monospace;">{{ row.code }}</pre>
-          </el-popover>
-        </template>
-      </el-table-column>
-      <el-table-column prop="stdout" label="输出" min-width="150" show-overflow-tooltip />
-    </el-table>
-    <template #footer>
-      <el-button @click="submissionDialogOpen = false">关闭</el-button>
-    </template>
-  </el-dialog>
   </div>
 </template>
 
@@ -1081,27 +904,38 @@ import { useRoute, useRouter } from 'vue-router'
 import { getToken } from '@/utils/auth'
 import { getCourse, getCourseNotices, addCourseNotice, delCourseNotice, inviteCourse, getCourseStudents, addCourseStudents, removeCourseStudent, addCourseStudentsFromClass, updateCourse, delCourse } from '@/api/edu/course'
 import { getNestedList, addChapter, updateChapter, delChapter } from '@/api/system/chapter'
+import { listResource, addResource, updateResource, delResource } from '@/api/edu/resource'
 import { listHomework, addHomework, updateHomework, delHomework } from '@/api/edu/homework'
 import { addSubmission, updateSubmission, listSubmission } from '@/api/edu/submission'
 import { listClass } from '@/api/edu/class'
 import { getUserBrief } from '@/api/edu/class'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { VideoPlay, Share, User, Search, InfoFilled, Delete, Setting, Edit, FolderAdd, DocumentAdd, EditPen, DeleteFilled, View, Upload, Plus, VideoCamera, Calendar, Timer, Check, Warning, Document, Download, Folder } from '@element-plus/icons-vue'
+import { VideoPlay, Share, User, Search, InfoFilled, Delete, Setting, Edit, FolderAdd, DocumentAdd, EditPen, DeleteFilled, View, Upload, Plus, VideoCamera, Calendar, Timer, Check, Warning, Document, Download, Folder, ArrowUp, ArrowDown, Bell, Monitor, Refresh, Paperclip, ArrowLeft } from '@element-plus/icons-vue'
 import useUserStore from '@/store/modules/user'
 import ImageUpload from '@/components/ImageUpload/index.vue'
+import VueOfficeDocx from '@vue-office/docx'
+import '@vue-office/docx/lib/index.css'
+import VueOfficeExcel from '@vue-office/excel'
+import '@vue-office/excel/lib/index.css'
+import VueOfficePdf from '@vue-office/pdf'
+import VueOfficePptx from '@vue-office/pptx'
 import FileUpload from '@/components/FileUpload/index.vue'
 import Editor from '@/components/Editor/index.vue'
 import defaultImg from '@/assets/images/profile.jpg'
 import defaultAvatar from '@/assets/images/profile.jpg'
 
-
-import { listResource, addResource, delResource,updateResource,downloadResource } from "@/api/edu/resource";
-import { listExperiment, addExperiment, updateExperiment, delExperiment, getAllSubmissions } from "@/api/edu/experiment";
-
 const { proxy } = getCurrentInstance()
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+
+const goBack = () => {
+  if (window.history.state && window.history.state.back) {
+    router.back()
+  } else {
+    router.push('/portal')
+  }
+}
 
 const courseId = route.params.id
 const course = ref({})
@@ -1113,6 +947,11 @@ const viewSubmissionOpen = ref(false)
 const viewSubmissionData = ref({})
 const notices = ref([])
 const students = ref([])
+const studentTotal = ref(0)
+const studentQueryParams = ref({
+  pageNum: 1,
+  pageSize: 10
+})
 const activeMenu = ref('courseware')
 const isTeacher = ref(false)
 const noticeOpen = ref(false)
@@ -1158,6 +997,54 @@ const openChapterManage = () => {
   getChapterList()
 }
 
+// Resource Management
+const resourceEditOpen = ref(false)
+const resourceForm = ref({})
+const resourceRef = ref(null)
+const resourceRules = {
+  resourceName: [{ required: true, message: '请输入资源名称', trigger: 'blur' }],
+  url: [{ required: true, message: '请上传资源文件', trigger: 'blur' }]
+}
+
+const handleAddResource = (chapter) => {
+    resourceForm.value = {
+        courseId: courseId,
+        chapterId: chapter.chapterId,
+        sort: 999, // Default to end
+        resourceName: '',
+        url: ''
+    }
+    parentChapterName.value = chapter.chapterName
+    resourceEditOpen.value = true
+}
+
+const handleEditResource = (resource) => {
+    resourceForm.value = { ...resource }
+    // Find parent chapter name
+    const findChapter = (list) => {
+        for(let c of list) {
+            if(c.chapterId === resource.chapterId) return c
+            if(c.children) {
+                const found = findChapter(c.children)
+                if(found) return found
+            }
+        }
+        return null
+    }
+    const parent = findChapter(chapters.value)
+    parentChapterName.value = parent ? parent.chapterName : '未知章节'
+    resourceEditOpen.value = true
+}
+
+const handleDeleteResource = (resource) => {
+    ElMessageBox.confirm('确认删除该资源吗？', '警告', { type: 'warning' }).then(() => {
+        delResource(resource.resourceId).then(() => {
+            ElMessage.success('删除成功')
+            getChapterList()
+        })
+    })
+}
+
 const submitResource = () => {
     resourceRef.value.validate(valid => {
         if(valid) {
@@ -1169,7 +1056,7 @@ const submitResource = () => {
             else if(['pdf'].includes(ext)) type = 'pdf'
             else if(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) type = 'office'
             else if(['txt'].includes(ext)) type = 'text'
-
+            
             resourceForm.value.type = type
 
             if(resourceForm.value.resourceId) {
@@ -1187,25 +1074,6 @@ const submitResource = () => {
             }
         }
     })
-}
-
-const handleAddResource = (chapter) => {
-  resourceForm.value = {
-    courseId: courseId,
-    chapterId: chapter.chapterId,
-    resourceName: '',
-    url: '',
-    sort: 999
-  }
-  parentChapterName.value = chapter.chapterName
-  resourceEditOpen.value = true
-}
-
-const handleEditResource = (row) => {
-  resourceForm.value = { ...row }
-  const parent = findParentInTree(chapters.value, row.chapterId)
-  parentChapterName.value = parent ? parent.chapterName : '未知章节'
-  resourceEditOpen.value = true
 }
 
 const handleAddChapter = (parent) => {
@@ -1272,6 +1140,67 @@ const submitChapter = () => {
   })
 }
 
+const previewContainerRef = ref(null)
+const previewScrollerRef = ref(null)
+
+const prevPage = () => {
+  const scroller = previewScrollerRef.value
+  if (scroller) {
+    // 优先滚动外层容器
+    if (scroller.scrollHeight > scroller.clientHeight) {
+      scroller.scrollTo({
+        top: scroller.scrollTop - scroller.clientHeight,
+        behavior: 'smooth'
+      })
+    } else {
+      // 如果外层不能滚动（比如 Excel），尝试查找内部可滚动元素
+      const innerScroller = findScrollableChild(scroller)
+      if (innerScroller) {
+        innerScroller.scrollTo({
+          top: innerScroller.scrollTop - innerScroller.clientHeight,
+          behavior: 'smooth'
+        })
+      }
+    }
+  }
+}
+
+const nextPage = () => {
+  const scroller = previewScrollerRef.value
+  if (scroller) {
+    if (scroller.scrollHeight > scroller.clientHeight) {
+      scroller.scrollTo({
+        top: scroller.scrollTop + scroller.clientHeight,
+        behavior: 'smooth'
+      })
+    } else {
+      const innerScroller = findScrollableChild(scroller)
+      if (innerScroller) {
+        innerScroller.scrollTo({
+          top: innerScroller.scrollTop + innerScroller.clientHeight,
+          behavior: 'smooth'
+        })
+      }
+    }
+  }
+}
+
+const findScrollableChild = (el, depth = 0) => {
+  if (!el || !el.children || depth > 3) return null
+  for (let i = 0; i < el.children.length; i++) {
+    const child = el.children[i]
+    // 检查是否可滚动
+    const style = window.getComputedStyle(child)
+    const isScrollable = (style.overflowY === 'auto' || style.overflowY === 'scroll') && child.scrollHeight > child.clientHeight
+    if (isScrollable) return child
+    
+    // 递归查找
+    const found = findScrollableChild(child, depth + 1)
+    if (found) return found
+  }
+  return null
+}
+
 const handlePlayResource = (resource) => {
   currentResource.value = resource
   resourcePlayOpen.value = true
@@ -1302,6 +1231,43 @@ const getFullUrl = (url) => {
   return import.meta.env.VITE_APP_BASE_API + url
 }
 
+// 获取预览专用的 URL (支持内网穿透)
+const getPreviewUrl = (url) => {
+  let fullUrl = getFullUrl(url)
+  
+  // 如果配置了公网预览地址 (VITE_APP_PREVIEW_DOMAIN)，则替换
+  const previewDomain = import.meta.env.VITE_APP_PREVIEW_DOMAIN
+  if (previewDomain && fullUrl.startsWith('/')) {
+     // 补全协议
+     return previewDomain.replace(/\/$/, '') + fullUrl
+  }
+  if (previewDomain && fullUrl.startsWith('http')) {
+     // 替换域名
+     const urlObj = new URL(fullUrl, window.location.origin)
+     // 这里假设 VITE_APP_BASE_API 是相对路径 '/dev-api'，在浏览器中会被解析为 http://localhost:xx/dev-api
+     // 如果用了穿透，通常需要把 http://localhost:xx 换成 https://xxxx.ngrok.io
+     // 但更简单的是：直接把相对路径拼接到公网域名后
+     if (fullUrl.startsWith(import.meta.env.VITE_APP_BASE_API)) {
+         return previewDomain.replace(/\/$/, '') + fullUrl
+     }
+  }
+  
+  // 降级策略：如果是本地开发环境，尝试提示用户
+  if (isLocalEnv.value && !previewDomain) {
+      console.warn('当前为本地环境，Office 预览需要配置 VITE_APP_PREVIEW_DOMAIN 为公网地址 (如 ngrok)')
+  }
+  
+  // 默认补全当前域名
+  if (fullUrl.startsWith('/')) {
+      return window.location.origin + fullUrl
+  }
+  
+  return fullUrl
+}
+
+const downloadResource = (url) => {
+  window.open(getFullUrl(url), '_blank')
+}
 
 // Drag and Drop Logic
 const allowDrag = (draggingNode) => {
@@ -1323,7 +1289,7 @@ const allowDrop = (draggingNode, dropNode, type) => {
 const handleNodeDrop = (draggingNode, dropNode, dropType, ev) => {
   const draggedData = draggingNode.data
   const dropData = dropNode.data
-
+  
   // Calculate new parent
   let newParentId = 0
   if (dropType === 'inner') {
@@ -1336,10 +1302,10 @@ const handleNodeDrop = (draggingNode, dropNode, dropType, ev) => {
         newParentId = dropData.raw.chapterId // if sibling of resource, parent is resource's chapter
     }
   }
-
+  
   // Get siblings to update sort order
   const siblings = (dropType === 'inner') ? (dropData.children || []) : dropNode.parent.childNodes.map(n => n.data)
-
+  
   // Update sort for all siblings
   const promises = []
   siblings.forEach((node, index) => {
@@ -1359,7 +1325,7 @@ const handleNodeDrop = (draggingNode, dropNode, dropType, ev) => {
       }
       if(p) promises.push(p)
   })
-
+  
   Promise.all(promises).then(() => {
       ElMessage.success('排序更新成功')
       getChapterList() // Refresh to ensure consistency
@@ -1377,325 +1343,6 @@ const studentSearchResults = ref([])
 const studentSelected = ref([])
 const classList = ref([])
 const selectedClassId = ref(null)
-
-//Resource Logic
-// --- 状态定义 ---
-const resourceList = ref([]);
-const resourceUploadOpen = ref(false);
-const previewOpen = ref(false); // [新增] 预览弹窗开关
-const previewUrl = ref("");     // [新增] 预览地址
-const previewType = ref("");    // [新增] 预览类型
-const previewTitle = ref("");   // [新增] 预览标题
-
-// 表单只需这两个字段，resourceName 后台或提交前处理
-const resourceForm = ref({
-  courseId: null,
-  filePath: '',
-  resourceName: '', // 虽然弹窗不填，但提交需要
-  status: '0'
-});
-
-// 只需要校验文件是否存在
-const resourceRules = {
-  filePath: [{ required: true, message: "请上传文件", trigger: "change" }]
-};
-
-// --- 方法定义 ---
-
-// --- [辅助] 获取文件后缀 ---
-function getFileExt(path) {
-  if (!path) return '';
-  const parts = path.split('.');
-  return parts[parts.length - 1].toUpperCase();
-}
-
-// 1. 获取资源列表 (修改：学生过滤隐藏资源)
-function getResourceList() {
-  listResource({ courseId: course.value.courseId }).then(response => {
-    let rows = response.rows;
-    // 如果不是老师，只显示 status 为 '0' 的
-    if (!isTeacher.value) {
-      rows = rows.filter(item => item.status === '0');
-    }
-    resourceList.value = rows;
-  });
-}
-
-// 2. 打开上传弹窗 (重置)
-function openResourceUpload() {
-  resourceForm.value = {
-    courseId: course.value.courseId,
-    resourceName: '',
-    filePath: '',
-    status: '0'
-  };
-  resourceUploadOpen.value = true;
-}
-
-// [新增] 切换状态
-function handleStatusChange(row) {
-  const text = row.status === '0' ? '发布' : '隐藏';
-  // 乐观更新：UI已经变了，发送请求。如果失败再变回来
-  updateResource({ resourceId: row.resourceId, status: row.status }).then(() => {
-    ElMessage.success(`已${text}该资源`);
-  }).catch(() => {
-    // 失败回滚
-    row.status = row.status === '0' ? '1' : '0';
-  });
-}
-
-// [新增] 预览逻辑
-function handlePreview(row) {
-  const ext = getFileExt(row.filePath).toLowerCase();
-  // 拼接完整URL (假设你的 RuoYiConfig.profile 映射了 /dev-api/profile)
-  // 注意：这里需要根据你的实际环境地址拼接
-  const baseUrl = import.meta.env.VITE_APP_BASE_API;
-  const fullUrl = baseUrl + row.filePath;
-
-  previewTitle.value = row.resourceName;
-  previewUrl.value = fullUrl;
-
-  if (['mp4', 'webm', 'ogg'].includes(ext)) {
-    previewType.value = 'video';
-  } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
-    previewType.value = 'image';
-  } else if (['pdf'].includes(ext)) {
-    previewType.value = 'pdf';
-  } else {
-    // Word/PPT/Excel 等浏览器无法直接预览
-    previewType.value = 'other';
-  }
-
-  previewOpen.value = true;
-}
-
-// 3. 文件上传后的回调（为了自动回填文件名，提升体验）
-// 注意：这取决于你的 FileUpload 组件怎么写的，通常它v-model绑定的是路径
-// 如果组件不支持抛出文件名，这一步可以省略，让老师手填
-function handleFileChange(val) {
-  // 简单的自动填充逻辑：如果名称为空，尝试从路径截取文件名（仅作辅助）
-  if (!resourceForm.value.resourceName && val) {
-    const fileName = val.split('/').pop();
-    // 去掉 UUID 前缀 (若依上传通常会加 uuid_filename)
-    resourceForm.value.resourceName = fileName.substring(fileName.indexOf('_') + 1) || fileName;
-  }
-}
-
-// 4. 提交保存
-function submitUploadResource() {
-  proxy.$refs["uploadResourceRef"].validate(valid => {
-    if (valid) {
-      // 1. 获取完整路径中的文件名
-      // 例如路径: /profile/upload/2026/01/09/测试文件A_202601091230.txt
-      const path = resourceForm.value.filePath;
-      const fileNameWithTimestamp = path.split('/').pop(); // 拿到 "测试文件A_202601091230.txt"
-
-      // 2. 提取文件后缀 (例如 .txt)
-      const lastDotIndex = fileNameWithTimestamp.lastIndexOf('.');
-      let nameBody = fileNameWithTimestamp;
-      if (lastDotIndex > -1) {
-        nameBody = fileNameWithTimestamp.substring(0, lastDotIndex); // 拿到 "测试文件A_202601091230"
-      }
-
-      // 3. 【核心修改】处理下划线逻辑
-      // 现在的规则是：名字_时间戳。我们要去掉最后一个下划线及其后面的内容
-      const lastUnderscoreIndex = nameBody.lastIndexOf('_');
-
-      if (lastUnderscoreIndex > -1) {
-        // 截取从 0 到 最后一个下划线 的部分
-        resourceForm.value.resourceName = nameBody.substring(0, lastUnderscoreIndex);
-      } else {
-        // 如果没有下划线，就直接用文件名
-        resourceForm.value.resourceName = nameBody;
-      }
-
-      // 发送请求
-      addResource(resourceForm.value).then(() => {
-        ElMessage.success("上传成功");
-        resourceUploadOpen.value = false;
-        getResourceList();
-      });
-    }
-  });
-}
-
-// // 5. 下载文件
-// function handleDownload(row) {
-//   // 调用后端下载接口，或者直接访问静态资源
-//   // 建议使用若依通用的 download 方法
-//   proxy.$download.resource(row.filePath);
-//   // 或者如果你的后端实现了计数接口：
-//   // downloadResource(row.resourceId).then(res => { blob保存... })
-// }
-
-// 5. 下载文件 (已修改为：后端计数 + 流式下载)
-function handleDownload(row) {
-  // 1. 开启 Loading 遮罩，防止用户重复点击
-  proxy.$modal.loading("正在下载资源，请稍候...");
-
-  // 2. 调用后端接口 (传入 resourceId 而不是 filePath)
-  downloadResource(row.resourceId).then(res => {
-    // 3. 处理文件流 (Blob)
-    const blob = new Blob([res]);
-
-    // 4. 决定下载时的文件名
-    // 优先使用原始文件名 (originName)，如果没有则使用资源标题 (resourceName)
-    const fileName = row.originName || row.resourceName || "download_file";
-
-    // 5. 创建临时的 <a> 标签触发浏览器下载
-    const link = document.createElement('a');
-    const url = window.URL.createObjectURL(blob);
-    link.href = url;
-    link.download = fileName; // 设置文件名
-    link.style.display = 'none';
-
-    document.body.appendChild(link);
-    link.click(); // 模拟点击
-
-    // 6. 清理内存和 DOM
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(link);
-
-    // 7. 关闭 Loading 并提示成功
-    proxy.$modal.closeLoading();
-    proxy.$modal.msgSuccess("下载已开始");
-
-    //(可选) 刷新列表，这样你能立刻看到下载次数 +1
-    getResourceList();
-
-  }).catch((err) => {
-    // 处理错误
-    proxy.$modal.closeLoading();
-    console.error("下载出错:", err);
-    proxy.$modal.msgError("下载失败，请检查文件是否存在");
-  });
-}
-
-// 6. 删除文件
-function handleDeleteResource(row) {
-  ElMessageBox.confirm('确认删除该资源吗?', '提示', {
-    type: 'warning'
-  }).then(() => {
-    delResource(row.resourceId).then(() => {
-      ElMessage.success("删除成功");
-      getResourceList();
-    });
-  });
-}
-
-
-
-// ==================== 实验模块 ====================
-const experimentList = ref([])
-const experimentOpen = ref(false)
-const experimentForm = ref({})
-const experimentRef = ref(null)
-const experimentRules = {
-  experimentName: [{ required: true, message: '请输入实验名称', trigger: 'blur' }]
-}
-
-// 获取实验列表
-function getExperimentList() {
-  listExperiment({ courseId: course.value.courseId }).then(res => {
-    let rows = res.rows || []
-    // 学生只能看到已发布的实验
-    if (!isTeacher.value) {
-      rows = rows.filter(item => item.status === '1')
-    }
-    experimentList.value = rows
-  })
-}
-
-// 打开实验弹窗
-function openExperimentDialog(exp) {
-  if (exp) {
-    experimentForm.value = { ...exp }
-  } else {
-    experimentForm.value = {
-      courseId: course.value.courseId,
-      experimentName: '',
-      description: '',
-      testInput: '',
-      testOutput: '',
-      status: '0',
-      deadline: null
-    }
-  }
-  experimentOpen.value = true
-}
-
-// 保存实验
-function submitExperiment() {
-  experimentRef.value.validate(valid => {
-    if (valid) {
-      if (experimentForm.value.experimentId) {
-        updateExperiment(experimentForm.value).then(() => {
-          ElMessage.success('更新成功')
-          experimentOpen.value = false
-          getExperimentList()
-        })
-      } else {
-        addExperiment(experimentForm.value).then(() => {
-          ElMessage.success('创建成功')
-          experimentOpen.value = false
-          getExperimentList()
-        })
-      }
-    }
-  })
-}
-
-// 删除实验
-function handleDeleteExperiment(exp) {
-  ElMessageBox.confirm('确认删除该实验吗?', '提示', { type: 'warning' }).then(() => {
-    delExperiment(exp.experimentId).then(() => {
-      ElMessage.success('删除成功')
-      getExperimentList()
-    })
-  })
-}
-
-// 跳转到实验编码页面
-function goToExperimentCoding(experimentId) {
-  router.push(`/edu/experiment/coding/${experimentId}`)
-}
-
-// ==================== 教师查看提交记录 ====================
-const submissionDialogOpen = ref(false)
-const submissionList = ref([])
-const currentExperimentName = ref('')
-
-function viewExperimentSubmissions(exp) {
-  currentExperimentName.value = exp.experimentName
-  getAllSubmissions(exp.experimentId).then(res => {
-    submissionList.value = res.data || []
-    submissionDialogOpen.value = true
-  })
-}
-
-// 评测结果翻译
-const resultMap = {
-  'Accepted': '通过',
-  'Wrong Answer': '答案错误',
-  'Compilation Error': '编译错误',
-  'Runtime Error': '运行时错误',
-  'Time Limit Exceeded': '超时',
-  'Memory Limit Exceeded': '内存超限'
-}
-
-function translateResult(result) {
-  return resultMap[result] || result
-}
-
-function getSubmissionTagType(result) {
-  if (result === 'Accepted') return 'success'
-  if (result === 'Wrong Answer' || result?.includes('Error')) return 'danger'
-  if (result === 'Time Limit Exceeded') return 'warning'
-  return 'info'
-}
-
-// ==================== 实验模块结束 ====================
-
 
 // Invite Logic
 const inviteOpen = ref(false)
@@ -1736,18 +1383,14 @@ const copyCode = () => {
 
 const menuItems = computed(() => {
   const items = [
-    { key: 'announcement', label: '公告', icon: 'Bell' },
-    { key: 'courseware', label: '课件', icon: 'Document' },
-    // --- 新增代码 START ---
-    { key: 'resources', label: '教学资源', icon: 'FolderOpened' },
-    // --- 新增代码 END ---
-    { key: 'homework', label: '测验与作业', icon: 'EditPen' },
-    { key: 'experiment', label: '实验', icon: 'Cpu' },
-    { key: 'exam', label: '考试', icon: 'Monitor' }
+    { key: 'announcement', label: '公告', icon: Bell },
+    { key: 'courseware', label: '课件', icon: Document },
+    { key: 'homework', label: '作业', icon: EditPen },
+    { key: 'exam', label: '考试', icon: Monitor }
   ]
   if (isTeacher.value) {
-    items.push({ key: 'members', label: '人员管理', icon: 'User' })
-    items.push({ key: 'settings', label: '课程设置', icon: 'Setting' })
+    items.push({ key: 'members', label: '人员管理', icon: User })
+    items.push({ key: 'settings', label: '课程设置', icon: Setting })
   }
   return items
 })
@@ -1764,14 +1407,6 @@ watch(activeMenu, (val) => {
     loadStudents()
   } else if (val === 'homework') {
     loadHomeworks()
-  }
-  // 4. 教学资源
-  else if (val === 'resources') {
-    getResourceList()
-  }
-  // 5. 实验
-  else if (val === 'experiment') {
-    getExperimentList()
   }
 })
 
@@ -1813,12 +1448,12 @@ const buildTreeData = () => {
                 raw: c,
                 children: []
             }
-
+            
             // Add sub-chapters
             if (c.children && c.children.length > 0) {
                 node.children.push(...process(c.children))
             }
-
+            
             // Add resources
             if (c.resources && c.resources.length > 0) {
                 const resourceNodes = c.resources.map(v => ({
@@ -1829,7 +1464,7 @@ const buildTreeData = () => {
                 }))
                 node.children.push(...resourceNodes)
             }
-
+            
             return node
         })
     }
@@ -1872,8 +1507,9 @@ const handleDelNotice = (notice) => {
 
 // Member Management Functions
 const loadStudents = () => {
-  getCourseStudents(courseId).then(res => {
+  getCourseStudents(courseId, studentQueryParams.value).then(res => {
     students.value = res.rows || []
+    studentTotal.value = res.total || 0
   })
 }
 
@@ -2000,7 +1636,7 @@ const getSubmissionGrade = (hw) => {
 }
 
 const openHomeworkDialog = () => {
-  homeworkForm.value = {
+  homeworkForm.value = { 
     courseId: courseId,
     status: '0',
     startTime: null,
@@ -2057,6 +1693,14 @@ const handleDelHomework = (hw) => {
 const submitHomework = () => {
     homeworkRef.value.validate(valid => {
         if(valid) {
+            // Clean up empty date strings
+            if (homeworkForm.value.startTime === '') {
+                homeworkForm.value.startTime = null;
+            }
+            if (homeworkForm.value.deadline === '') {
+                homeworkForm.value.deadline = null;
+            }
+
             if (homeworkForm.value.id) {
                 updateHomework(homeworkForm.value).then(() => {
                     ElMessage.success('更新成功')
@@ -2095,7 +1739,7 @@ const openSubmitDialog = (hw) => {
         if (sub.imageUrl) {
             combinedUrl = combinedUrl ? (combinedUrl + ',' + sub.imageUrl) : sub.imageUrl
         }
-
+        
         submitForm.value = {
             id: sub.id,
             homeworkId: hw.id,
@@ -2202,6 +1846,26 @@ const isOfficeUrl = (url) => {
     const ext = getExt(url)
     return ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)
 }
+
+const isWordUrl = (url) => {
+    const ext = getExt(url)
+    return ['doc', 'docx'].includes(ext)
+}
+
+const isExcelUrl = (url) => {
+    const ext = getExt(url)
+    return ['xls', 'xlsx'].includes(ext)
+}
+
+const isPptUrl = (url) => {
+    const ext = getExt(url)
+    return ['ppt', 'pptx'].includes(ext)
+}
+
+const isLocalEnv = computed(() => {
+  const hostname = window.location.hostname
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')
+})
 
 const getFileName = (url) => {
     if (!url) return '附件'
@@ -2377,7 +2041,7 @@ const getFileName = (url) => {
     background: #f5f7fa;
     padding: 2px 6px;
     border-radius: 4px;
-
+    
   }
   
   .user-cell {
@@ -2492,6 +2156,20 @@ const getFileName = (url) => {
     align-items: center;
     gap: 15px;
     
+    .back-area {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      color: #606266;
+      font-size: 14px;
+      transition: color 0.3s;
+      
+      &:hover {
+        color: #409EFF;
+      }
+    }
+
     .logo-area {
       display: flex;
       align-items: center;
@@ -2749,7 +2427,7 @@ const getFileName = (url) => {
   display: flex;
   flex-direction: column;
   gap: 15px;
-
+  
   .homework-item {
       background: #fff;
       border: 1px solid #ebeef5;
@@ -2760,7 +2438,7 @@ const getFileName = (url) => {
       transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
       position: relative;
-
+      
       &:hover {
         transform: translateY(-2px);
         box-shadow: 0 8px 20px rgba(0,0,0,0.08);
@@ -2770,25 +2448,25 @@ const getFileName = (url) => {
       &.status-0 .homework-left-border { background: #909399; } /* Draft */
       &.status-1 .homework-left-border { background: #409EFF; } /* Published */
       &.status-2 .homework-left-border { background: #F56C6C; } /* Closed */
-
+      
       .homework-left-border {
           width: 4px;
           background: #dcdfe6;
       }
-
+      
       .homework-main {
         flex: 1;
         padding: 20px 0 20px 20px;
         margin-right: 20px;
         display: flex;
         flex-direction: column;
-
+        
         .homework-header {
             display: flex;
             align-items: center;
             gap: 12px;
             margin-bottom: 12px;
-
+            
             .homework-title {
               font-size: 18px;
               font-weight: 600;
@@ -2796,13 +2474,13 @@ const getFileName = (url) => {
               margin: 0;
             }
         }
-
+        
         .homework-meta {
             display: flex;
             gap: 16px;
             margin-bottom: 16px;
             flex-wrap: wrap;
-
+            
             .meta-item {
                 display: flex;
                 align-items: center;
@@ -2812,14 +2490,14 @@ const getFileName = (url) => {
                 background: #f4f4f5;
                 padding: 4px 10px;
                 border-radius: 4px;
-
+                
                 &.deadline {
                     color: #e6a23c;
                     background: #fdf6ec;
                 }
             }
         }
-
+        
         .homework-content-preview {
           color: #606266;
           font-size: 14px;
@@ -2832,7 +2510,7 @@ const getFileName = (url) => {
           -webkit-box-orient: vertical;
         }
       }
-
+      
       .homework-right {
          padding: 20px;
          display: flex;
@@ -2842,22 +2520,22 @@ const getFileName = (url) => {
          border-left: 1px solid #f2f6fc;
          min-width: 200px;
          background: #fafafa;
-
+         
          .action-buttons {
              display: flex;
              gap: 8px;
          }
-
+         
          .student-status-area {
              margin-bottom: 15px;
              text-align: right;
-
+             
              .status-indicator {
                  display: flex;
                  align-items: center;
                  justify-content: flex-end;
                  gap: 8px;
-
+                 
                  &.submitted {
                      .status-icon {
                          color: #67c23a;
@@ -2877,7 +2555,7 @@ const getFileName = (url) => {
                              }
                      }
                  }
-
+                 
                  &.not-submitted {
                      .status-dot {
                          width: 8px;
@@ -2894,11 +2572,11 @@ const getFileName = (url) => {
          }
       }
     }
-
+    
     /* View Submission Dialog Styles */
     .score-card {
         padding: 0 10px;
-
+        
         .score-header {
             display: flex;
             justify-content: space-between;
@@ -2907,29 +2585,29 @@ const getFileName = (url) => {
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
-
+            
             &.is-graded {
                 background: linear-gradient(135deg, #f0f9eb 0%, #e1f3d8 100%);
-
+                
                 .score-value { color: #67c23a; }
             }
-
+            
             .score-main {
                 display: flex;
                 flex-direction: column;
-
+                
                 .label {
                     font-size: 13px;
                     color: #909399;
                     margin-bottom: 4px;
                 }
-
+                
                 .score-value {
                     font-size: 36px;
                     font-weight: bold;
                     color: #303133;
                     line-height: 1;
-
+                    
                     .suffix {
                         font-size: 16px;
                         font-weight: normal;
@@ -2939,24 +2617,24 @@ const getFileName = (url) => {
                 }
             }
         }
-
+        
         .submission-info {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
             margin-bottom: 15px;
-
+            
             .info-row {
                 font-size: 13px;
                 color: #606266;
-
+                
                 .label { color: #909399; }
             }
         }
-
+        
         .content-section {
             margin-top: 20px;
-
+            
             .section-title {
                 font-size: 15px;
                 font-weight: bold;
@@ -2965,13 +2643,13 @@ const getFileName = (url) => {
                 border-left: 3px solid #409EFF;
                 padding-left: 10px;
             }
-
+            
             .content-box {
                 background: #f9fafc;
                 padding: 15px;
                 border-radius: 4px;
                 border: 1px solid #e4e7ed;
-
+                
                 .text-content {
                     white-space: pre-wrap;
                     color: #606266;
@@ -2980,10 +2658,10 @@ const getFileName = (url) => {
                     margin-bottom: 10px;
                 }
             }
-
+            
             &.feedback-section {
                 .section-title { border-color: #67c23a; }
-
+                
                 .feedback-box {
                     background: #f0f9eb;
                     border-color: #e1f3d8;
@@ -3004,14 +2682,14 @@ const getFileName = (url) => {
   border-top: 1px solid #ebeef5;
   border-bottom: 1px solid #ebeef5;
   margin: -20px -20px 0; /* Negate dialog padding */
-
+  
   .publish-left {
     flex: 1;
     width: 50%;
     min-width: 0; /* Prevent flex item from expanding due to content */
     padding: 20px;
     overflow-y: auto;
-
+    
     .editor-item {
       margin-bottom: 0;
       :deep(.el-form-item__content) {
@@ -3019,7 +2697,7 @@ const getFileName = (url) => {
       }
     }
   }
-
+  
   .publish-right {
     flex: 1;
     width: 50%;
@@ -3028,7 +2706,7 @@ const getFileName = (url) => {
     border-left: 1px solid #e4e7ed;
     display: flex;
     flex-direction: column;
-
+    
     .preview-header {
       padding: 10px 20px;
       border-bottom: 1px solid #ebeef5;
@@ -3036,19 +2714,19 @@ const getFileName = (url) => {
       justify-content: space-between;
       align-items: center;
       background: #fff;
-
+      
       .preview-label {
         font-weight: bold;
         color: #303133;
         font-size: 14px;
       }
     }
-
+    
     .content-preview-box {
       flex: 1;
       padding: 30px;
       overflow-y: auto;
-
+      
       .preview-title {
         font-size: 22px;
         font-weight: bold;
@@ -3056,7 +2734,7 @@ const getFileName = (url) => {
         margin-bottom: 10px;
         text-align: center;
       }
-
+      
       .preview-meta {
         display: flex;
         justify-content: center;
@@ -3066,25 +2744,33 @@ const getFileName = (url) => {
         font-size: 13px;
         border-bottom: 1px dashed #ebeef5;
         padding-bottom: 15px;
-
+        
         .meta-item {
           display: flex;
           align-items: center;
           gap: 5px;
-
+          
           &.deadline { color: #e6a23c; }
         }
       }
-
+      
       .preview-body {
         font-size: 15px;
         line-height: 1.8;
         color: #333;
-
+        
         /* Mimic Quill editor output styles */
         p { margin-bottom: 1em; }
-        img { max-width: 100%; height: auto; display: block; margin: 10px auto; }
-
+        :deep(img) { 
+          max-width: 80%; 
+          max-height: 400px; 
+          height: auto; 
+          display: block; 
+          margin: 10px auto; 
+          border-radius: 4px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
         .placeholder {
           color: #ccc;
           text-align: center;
@@ -3109,11 +2795,79 @@ const getFileName = (url) => {
   justify-content: center;
   min-height: 400px;
   background: #f5f7fa;
-  border-radius: 4px;
+  border-radius: 8px;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.02);
   overflow: hidden;
-
+  position: relative;
+  
   &.is-video {
     background: #000;
+  }
+
+  &.is-office {
+    display: block;
+    height: 75vh;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+  }
+  
+  .preview-scroller {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: #dcdfe6;
+      border-radius: 3px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  }
+  
+  /* Center content in scroller for video/default */
+  &:not(.is-office) .preview-scroller {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+  }
+
+  .preview-pagination {
+    position: absolute;
+    bottom: 40px;
+    right: 40px;
+    z-index: 100;
+    
+    .pagination-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      
+      .el-button {
+        margin: 0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        border: none;
+        background-color: rgba(64, 158, 255, 0.9);
+        font-size: 20px;
+        width: 48px;
+        height: 48px;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        
+        &:hover {
+          background-color: rgba(64, 158, 255, 1);
+          transform: scale(1.1);
+          box-shadow: 0 8px 20px rgba(64, 158, 255, 0.3);
+        }
+        
+        &:active {
+          transform: scale(0.95);
+        }
+      }
+    }
   }
 }
 
@@ -3124,55 +2878,5 @@ const getFileName = (url) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-/* 实验列表样式 */
-.experiment-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.experiment-card {
-  .exp-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-  }
-
-  .exp-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #303133;
-  }
-
-  .exp-desc {
-    font-size: 14px;
-    color: #666;
-    margin-bottom: 15px;
-    line-height: 1.6;
-    max-height: 60px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .exp-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 1px solid #eee;
-    padding-top: 10px;
-  }
-
-  .exp-time {
-    font-size: 12px;
-    color: #999;
-  }
-
-  .exp-actions {
-    display: flex;
-    gap: 10px;
-  }
 }
 </style>

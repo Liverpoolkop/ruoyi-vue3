@@ -37,6 +37,16 @@
                   <td class="el-table__cell is-leaf"><div class="cell">网络入口/出口</div></td>
                   <td class="el-table__cell is-leaf"><div class="cell" v-if="cache.info">{{ cache.info.instantaneous_input_kbps }}kps/{{cache.info.instantaneous_output_kbps}}kps</div></td>
                 </tr>
+                <tr>
+                   <td class="el-table__cell is-leaf"><div class="cell">内存峰值</div></td>
+                   <td class="el-table__cell is-leaf"><div class="cell" v-if="cache.info">{{ cache.info.used_memory_peak_human }}</div></td>
+                   <td class="el-table__cell is-leaf"><div class="cell">Lua内存</div></td>
+                   <td class="el-table__cell is-leaf"><div class="cell" v-if="cache.info">{{ cache.info.used_memory_lua_human }}</div></td>
+                   <td class="el-table__cell is-leaf"><div class="cell">内存碎片率</div></td>
+                   <td class="el-table__cell is-leaf"><div class="cell" v-if="cache.info">{{ cache.info.mem_fragmentation_ratio }}</div></td>
+                   <td class="el-table__cell is-leaf"><div class="cell">命中率</div></td>
+                   <td class="el-table__cell is-leaf"><div class="cell" v-if="cache.info">{{ ((parseInt(cache.info.keyspace_hits) / (parseInt(cache.info.keyspace_hits) + parseInt(cache.info.keyspace_misses))) * 100).toFixed(2) }}%</div></td>
+                </tr>
               </tbody>
             </table>
           </div>

@@ -42,6 +42,7 @@
               </div>
             </template>
             
+  
             <el-table :data="students" height="600" style="width: 100%" :header-cell-style="{background:'#f5f7fa'}">
               <el-table-column prop="studentId" label="学号" width="150" align="center">
                 <template #default="scope">
@@ -50,7 +51,7 @@
               </el-table-column>
               <el-table-column prop="studentName" label="姓名" min-width="160" align="center">
                 <template #default="scope">
-                  <span class="student-name">{{ scope.row.studentName }}</span>
+                  <span class="student-name">{{ scope.row.nickName || scope.row.studentName }}</span>
                 </template>
               </el-table-column>
               <el-table-column label="操作" width="120" align="center" v-if="canManage">
@@ -111,7 +112,7 @@
               </div>
             </template>
             <div class="teacher-profile">
-            <el-avatar :size="60" src="" class="mb-2">
+            <el-avatar :size="60" :src="info.avatar ? (info.avatar.startsWith('http') ? info.avatar : baseUrl + info.avatar) : ''" class="mb-2">
               {{ info.nickName ? info.nickName.substring(0, 1) : '师' }}
             </el-avatar>
             <div class="name">{{ info.nickName }}</div>
@@ -277,6 +278,7 @@ import PortalNavbar from '@/components/PortalNavbar/index.vue'
 
 const { proxy } = getCurrentInstance()
 const route = useRoute()
+const baseUrl = import.meta.env.VITE_APP_BASE_API
 const info = ref({})
 const students = ref([])
 const importOpen = ref(false)
@@ -381,6 +383,19 @@ function reload(){
   const id = Number(route.params.id)
   getClass(id).then(res => { 
     info.value = res.data || {}
+    
+    // Fetch teacher avatar using public search API
+    if (info.value.teacherName) {
+      getUserBrief(info.value.teacherName).then(uRes => {
+        const users = uRes.data || []
+        // Find exact match for teacher
+        const teacher = users.find(u => u.userName === info.value.teacherName)
+        if (teacher) {
+          info.value.avatar = teacher.avatar
+        }
+      })
+    }
+
     students.value = res.students || []
   }) 
 }

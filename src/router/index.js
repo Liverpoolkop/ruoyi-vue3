@@ -145,6 +145,11 @@ export const constantRoutes = [
     hidden: true
   },
   {
+    path: '/edu/exam/taking/:examId(\\d+)',
+    component: () => import('@/views/edu/exam/taking'),
+    hidden: true
+  },
+  {
     path: '/edu/class',
     component: Layout,
     hidden: true,
@@ -156,11 +161,6 @@ export const constantRoutes = [
         meta: { title: '班级详情', activeMenu: '/edu/class' }
       }
     ]
-  },
-  {
-    path: '/edu/exam/taking/:examId',
-    component: () => import('@/views/edu/exam/taking'),
-    hidden: true
   },
 ]
 

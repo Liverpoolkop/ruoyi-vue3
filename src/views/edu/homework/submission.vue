@@ -93,7 +93,7 @@
            <span>{{ viewForm.nickName }}</span>
         </el-form-item>
         <el-form-item label="提交内容">
-           <div v-html="viewForm.content" style="border: 1px solid #dcdfe6; padding: 10px; border-radius: 4px; min-height: 100px;"></div>
+           <div class="submission-content" v-html="viewForm.content" style="border: 1px solid #dcdfe6; padding: 10px; border-radius: 4px; min-height: 100px;"></div>
         </el-form-item>
         <el-form-item label="附件">
            <el-link v-if="viewForm.fileUrl" :href="viewForm.fileUrl" target="_blank" type="primary" icon="Download">下载附件</el-link>
@@ -202,3 +202,13 @@ onMounted(() => {
     }
 })
 </script>
+
+<style scoped>
+.submission-content :deep(img) {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  display: block;
+  margin: 10px 0;
+}
+</style>

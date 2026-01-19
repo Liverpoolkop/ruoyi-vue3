@@ -99,6 +99,9 @@
           <ImageUpload v-model="addForm.courseImg" :limit="1" />
         </el-form-item>
         <el-form-item label="描述" prop="courseDesc"><el-input v-model="addForm.courseDesc" type="textarea" placeholder="请输入课程描述" /></el-form-item>
+        <el-form-item label="加入需审批" prop="approvalRequired">
+          <el-switch v-model="addForm.approvalRequired" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button type="primary" @click="submitAdd">确 定</el-button>
@@ -188,13 +191,13 @@ function submitAdd(){
   })
 }
 function doDel(row){ delCourse(row.courseId).then(()=> handleQuery()) }
-function canManage(row){ return auth.hasRole('admin') || (row.createBy && row.createBy === userStore.name) }
+function canManage(row){ return auth.hasRole('admin') || row.isTeacher || (row.createBy && row.createBy === userStore.name) }
 function genInvite(row){ inviteCourse(row.courseId).then(res => { const d = res.data || {}; ElMessage.success(`邀请码：${d.inviteCode}，有效${d.expireHours}小时`) }) }
-function doJoin(row){ joinCourse(row.courseId).then(()=> { ElMessage.success('已加入'); handleQuery() }) }
+function doJoin(row){ joinCourse(row.courseId).then(res => { ElMessage.success(res.msg || '已加入'); handleQuery() }) }
 function joinByCodePrompt(){
   ElMessageBox.prompt('请输入邀请码', '加入课程', { confirmButtonText: '加入', cancelButtonText: '取消' })
     .then(({ value }) => { return joinCourseByCode(value) })
-    .then(()=> { ElMessage.success('已加入'); handleQuery() })
+    .then(res => { ElMessage.success(res.msg || '已加入'); handleQuery() })
 }
 function isJoined(row){ return joinedIds.value.includes(row.courseId) }
 function resetQuery() { queryParams.value = { teacherId: undefined, status: undefined, pageNum: 1, pageSize: queryParams.value.pageSize }; handleQuery() }

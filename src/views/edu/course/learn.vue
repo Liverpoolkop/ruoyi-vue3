@@ -206,14 +206,14 @@
 
           <el-empty v-else description="暂无教学资源" />
         </div>
-        
+
         <!-- Homework -->
         <div v-else-if="activeMenu === 'homework'" class="content-wrapper">
           <div class="content-header">
             <h2>作业</h2>
             <el-button v-if="isTeacher" type="primary" size="small" :icon="Plus" @click="openHomeworkDialog">发布作业</el-button>
           </div>
-          
+
           <div v-if="homeworkList && homeworkList.length > 0" class="homework-list">
              <div v-for="hw in homeworkList" :key="hw.id" :class="['homework-item', 'status-' + hw.status]">
                 <div class="homework-left-border"></div>
@@ -224,7 +224,7 @@
                          {{ getHomeworkStatusText(hw.status) }}
                        </el-tag>
                    </div>
-                   
+
                    <div class="homework-meta">
                        <div class="meta-item">
                            <el-icon><Calendar /></el-icon>
@@ -238,7 +238,7 @@
 
                    <!-- Content preview removed as per request -->
                 </div>
-                
+
                 <div class="homework-right">
                    <template v-if="isTeacher">
                        <div class="action-buttons">
@@ -261,34 +261,34 @@
                                <span class="main-text">未提交</span>
                            </div>
                        </div>
-                       
+
                        <div class="student-actions">
                            <el-tooltip :content="getSubmitTooltip(hw)" :disabled="canSubmit(hw) || (isSubmitted(hw) && canSubmit(hw))" placement="top">
                                <span class="action-wrapper">
-                                   <el-button 
+                                   <el-button
                                     v-if="!isSubmitted(hw)"
-                                    type="primary" 
+                                    type="primary"
                                     round
-                                    :icon="Upload" 
+                                    :icon="Upload"
                                     :disabled="!canSubmit(hw)"
                                     @click="openSubmitDialog(hw)"
                                    >提交作业</el-button>
-                                   
-                                   <el-button 
+
+                                   <el-button
                                     v-else-if="canSubmit(hw)"
-                                    type="warning" 
+                                    type="warning"
                                     plain
                                     round
-                                    :icon="Edit" 
+                                    :icon="Edit"
                                     @click="openSubmitDialog(hw)"
                                    >修改作业</el-button>
-                                   
-                                   <el-button 
+
+                                   <el-button
                                     v-else
-                                    type="info" 
+                                    type="info"
                                     plain
                                     round
-                                    :icon="View" 
+                                    :icon="View"
                                     @click="openViewDialog(hw)"
                                    >查看详情</el-button>
                                </span>
@@ -365,7 +365,7 @@
                   </el-button>
                 </div>
               </div>
-              
+
               <div class="exam-info">
                 <div class="info-item"><el-icon><Timer /></el-icon> 时长：{{ exam.duration ? exam.duration + '分钟' : '不限时' }}</div>
                 <div class="info-item"><el-icon><Trophy /></el-icon> 总分：{{ exam.totalScore }}分</div>
@@ -375,9 +375,9 @@
               <div class="exam-desc" v-if="exam.description">{{ exam.description }}</div>
 
               <div v-if="!isTeacher" class="student-action">
-                <el-button 
-                  type="primary" 
-                  round 
+                <el-button
+                  type="primary"
+                  round
                   :disabled="!canStartExam(exam)"
                   @click="handleStartExam(exam)"
                 >
@@ -387,7 +387,7 @@
             </el-card>
           </div>
           <el-empty v-else description="暂无考试安排" />
-          
+
           <el-dialog v-model="examDialogOpen" :title="examForm.id ? '编辑考试' : '发起考试'" width="900px" top="5vh">
             <el-form :model="examForm" ref="examRef" :rules="examRules" label-width="100px">
               <el-form-item label="考试名称" prop="title">
@@ -409,16 +409,16 @@
               <el-form-item label="试卷须知">
                 <el-input v-model="examForm.description" type="textarea" :rows="3" />
               </el-form-item>
-              
+
               <el-divider content-position="left">试卷题目管理</el-divider>
-              
+
               <div class="question-selector">
                  <div class="selector-header">
-                    <el-button 
-                      type="success" 
-                      plain 
-                      size="small" 
-                      icon="Plus" 
+                    <el-button
+                      type="success"
+                      plain
+                      size="small"
+                      icon="Plus"
                       @click="openQuestionBankDialog"
                       :disabled="examForm.status === '1'"
                     >
@@ -439,10 +439,10 @@
                     </el-table-column>
                     <el-table-column label="操作" width="80">
                        <template #default="scope">
-                          <el-button 
-                            link 
-                            type="danger" 
-                            icon="Delete" 
+                          <el-button
+                            link
+                            type="danger"
+                            icon="Delete"
                             @click="removeQuestion(scope.$index)"
                             :disabled="examForm.status === '1'"
                           ></el-button>
@@ -456,7 +456,7 @@
               <el-button type="primary" @click="submitExam">保存</el-button>
             </template>
           </el-dialog>
-          
+
           <el-dialog v-model="bankDialogOpen" title="选择题目" width="800px" append-to-body>
              <div class="bank-filter">
                 <el-input v-model="qSearchTags" placeholder="输入标签搜索" style="width: 200px; margin-right: 10px;" />
@@ -493,17 +493,17 @@
               </el-table-column>
               <el-table-column label="操作" align="center">
                 <template #default="{row}">
-                  <el-button 
-                    v-if="row.status === '2'" 
-                    type="primary" 
-                    size="small" 
+                  <el-button
+                    v-if="row.status === '2'"
+                    type="primary"
+                    size="small"
                     @click="handleGrade(row)">
                     去阅卷
                   </el-button>
-                  <el-button 
-                    v-else-if="row.status === '3'" 
-                    type="success" 
-                    size="small" 
+                  <el-button
+                    v-else-if="row.status === '3'"
+                    type="success"
+                    size="small"
                     plain
                     @click="handleGrade(row)">
                     已阅卷 (修改)
@@ -521,7 +521,7 @@
           <el-drawer v-model="gradingDrawerOpen" title="批改试卷" size="50%">
             <div style="padding: 20px; overflow-y: auto; height: calc(100vh - 150px);">
               <div v-for="(item, index) in studentAnswerList" :key="item.id" style="border-bottom:1px solid #eee; padding-bottom:20px; margin-bottom:20px">
-          
+
                 <div style="font-weight:bold; margin-bottom:10px;">
                   <el-tag :type="String(item.questionType) === '4' ? 'warning' : 'info'" size="small">
                       {{ String(item.questionType) === '4' ? '简答题' : '客观题' }}
@@ -531,7 +531,7 @@
                 </div>
 
                 <div style="margin-bottom:10px;">{{ item.questionContent }}</div>
-                
+
                 <div style="background:#f5f7fa; padding:10px; border-radius:4px; margin-bottom:10px;">
                   <p style="margin:0; font-size:12px; color:#999">学生作答：</p>
                   <p style="margin:5px 0 0 0; font-weight:bold">{{ item.studentAnswer || '未作答' }}</p>
@@ -553,7 +553,7 @@
               <el-divider>评语</el-divider>
               <el-input v-model="teacherComment" type="textarea" placeholder="写点评语..." :rows="3" />
             </div>
-            
+
             <template #footer>
               <el-button @click="gradingDrawerOpen = false">取消</el-button>
               <el-button type="primary" @click="submitGrade">提交成绩</el-button>
@@ -565,7 +565,13 @@
         <div v-else-if="activeMenu === 'members'" class="content-wrapper">
            <div class="content-header">
             <h2>人员管理</h2>
-            <el-button type="primary" size="small" :icon="Plus" @click="openStudentAddDialog">添加成员</el-button>
+            <div>
+              <el-badge :value="applicants.length" class="item" v-if="applicants.length > 0" style="margin-right: 15px;">
+                <el-button type="warning" size="small" icon="Check" @click="openApprovalDialog">审批申请</el-button>
+              </el-badge>
+              <el-button v-else type="warning" plain size="small" icon="Check" @click="openApprovalDialog" style="margin-right: 15px;">审批申请</el-button>
+              <el-button type="primary" size="small" :icon="Plus" @click="openStudentAddDialog">添加成员</el-button>
+            </div>
           </div>
           
           <el-table 
@@ -668,6 +674,15 @@
             </div>
           </div>
         </div>
+
+        <!-- knowledge -->
+        <div v-else-if="activeMenu === 'knowledge'" class="content-wrapper">
+          <div class="content-header">
+            <h2>知识图谱</h2>
+          </div>
+          <Knowledge :courseData="course"></Knowledge>
+        </div>
+
 
       </div>
     </div>
@@ -830,9 +845,9 @@
           <el-input v-model="resourceForm.resourceName" placeholder="请输入资源名称" />
         </el-form-item>
         <el-form-item label="资源文件" prop="url">
-           <FileUpload 
-             v-model="resourceForm.url" 
-             :limit="1" 
+           <FileUpload
+             v-model="resourceForm.url"
+             :limit="1"
              :file-type="['mp4', 'webm', 'ogg', 'mov', 'avi', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif']"
              :is-show-tip="false"
            />
@@ -953,6 +968,13 @@
             <el-radio label="1">已结束</el-radio>
           </el-radio-group>
         </el-form-item>
+        <el-form-item label="加入设置" prop="approvalRequired">
+          <div class="approval-setting">
+            <span class="setting-label">需要审批才能加入</span>
+            <el-switch v-model="editCourseForm.approvalRequired" />
+          </div>
+          <div class="setting-tip">开启后，学生申请加入课程需要教师或管理员审核通过</div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="editCourseOpen = false">取消</el-button>
@@ -1047,7 +1069,7 @@
             </el-form-item>
           </el-form>
         </div>
-        
+
         <div class="publish-right">
           <div class="preview-header">
             <span class="preview-label">内容预览</span>
@@ -1063,7 +1085,7 @@
           </div>
         </div>
       </div>
-      
+
       <template #footer>
         <div class="dialog-footer" style="text-align: center;">
           <el-button @click="homeworkOpen = false" size="large">取 消</el-button>
@@ -1145,14 +1167,14 @@
               <div class="section-title">我的作业</div>
               <div class="content-box">
                   <div class="text-content">{{ viewSubmissionData.content || '（无文本内容）' }}</div>
-                  
+
                   <!-- Merged Display for FileUrl (Images + Files) -->
                   <div v-if="viewSubmissionData.fileUrl" class="attachments-container">
                       <template v-for="(url, index) in viewSubmissionData.fileUrl.split(',')" :key="index">
                           <!-- Image Display -->
                           <div v-if="isImageUrl(url)" class="image-item" style="display: inline-block; margin-right: 10px; margin-bottom: 10px;">
-                              <el-image 
-                                :src="url" 
+                              <el-image
+                                :src="url"
                                 :preview-src-list="[url]"
                                 style="width: 100px; height: 100px; border-radius: 4px;"
                                 fit="cover"
@@ -1185,22 +1207,22 @@
     </el-dialog>
 
     <!-- Resource Preview Dialog -->
-    <el-dialog 
-      v-model="resourcePlayOpen" 
-      :title="currentResource.resourceName" 
-      width="90%" 
+    <el-dialog
+      v-model="resourcePlayOpen"
+      :title="currentResource.resourceName"
+      width="90%"
       top="2vh"
-      destroy-on-close 
-      center 
+      destroy-on-close
+      center
       append-to-body
       class="resource-preview-dialog"
     >
       <div class="preview-container" :class="{'is-video': isVideoUrl(currentResource.url), 'is-office': isOfficeUrl(currentResource.url) || isPdfUrl(currentResource.url)}">
          <div class="preview-scroller" ref="previewScrollerRef">
-            <video 
-                v-if="isVideoUrl(currentResource.url)" 
-                :src="getFullUrl(currentResource.url)" 
-                controls 
+            <video
+                v-if="isVideoUrl(currentResource.url)"
+                :src="getFullUrl(currentResource.url)"
+                controls
                 autoplay
                 style="width: 100%; max-height: 75vh; display: block;"
             >
@@ -1331,14 +1353,37 @@
         <el-button @click="submissionDialogOpen = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <!-- Approval Dialog -->
+    <el-dialog v-model="approvalOpen" title="加入申请审批" width="800px">
+      <el-table :data="applicants">
+        <el-table-column label="用户" prop="student.nickName" />
+        <el-table-column label="邮箱" prop="student.email" />
+        <el-table-column label="申请时间" prop="createTime">
+          <template #default="scope">
+            <span>{{ parseTime(scope.row.createTime) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" align="center" width="200">
+          <template #default="scope">
+            <el-button link type="primary" icon="Check" @click="handleApprove(scope.row, '1')">通过</el-button>
+            <el-button link type="danger" icon="Close" @click="handleApprove(scope.row, '2')">拒绝</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div v-if="!applicants || applicants.length === 0" style="text-align: center; padding: 20px; color: #999;">
+        暂无待审批申请
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
+import Knowledge from "@/views/edu/knowledge/index.vue";
 import { ref, onMounted, computed, watch, getCurrentInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getToken } from '@/utils/auth'
-import { getCourse, getCourseNotices, addCourseNotice, delCourseNotice, inviteCourse, getCourseStudents, addCourseStudents, removeCourseStudent, addCourseStudentsFromClass, updateCourse, delCourse } from '@/api/edu/course'
+import { getCourse, getCourseNotices, addCourseNotice, delCourseNotice, inviteCourse, getCourseStudents, addCourseStudents, removeCourseStudent, addCourseStudentsFromClass, updateCourse, delCourse, getApplicants, approveJoin } from '@/api/edu/course'
 import { getNestedList, addChapter, updateChapter, delChapter } from '@/api/system/chapter'
 import { listResource, addResource, updateResource, delResource, downloadResource } from '@/api/edu/resource'
 import { listTeachingResource, addTeachingResource, updateTeachingResource, delTeachingResource, downloadTeachingResource } from '@/api/edu/teachingResource'
@@ -1362,16 +1407,16 @@ import Editor from '@/components/Editor/index.vue'
 import defaultImg from '@/assets/images/profile.jpg'
 import defaultAvatar from '@/assets/images/profile.jpg'
 
-import { 
-  listExam, 
-  getExam, 
-  addExam, 
-  updateExam, 
-  delExam, 
-  publishExam, 
-  listQuestion, 
-  startExam, 
-  submitExamPaper, 
+import {
+  listExam,
+  getExam,
+  addExam,
+  updateExam,
+  delExam,
+  publishExam,
+  listQuestion,
+  startExam,
+  submitExamPaper,
   recordCheat,
   listExamRecord, getRecordDetail, gradeExam
 } from "@/api/edu/exam";
@@ -1389,6 +1434,8 @@ const goBack = () => {
   }
 }
 
+const courseData=ref({});// 知识图谱数据
+
 const courseId = route.params.id
 const course = ref({})
 const chapters = ref([])
@@ -1404,6 +1451,8 @@ const studentQueryParams = ref({
   pageNum: 1,
   pageSize: 10
 })
+const approvalOpen = ref(false)
+const applicants = ref([])
 const activeMenu = ref('courseware')
 const isTeacher = ref(false)
 const noticeOpen = ref(false)
@@ -1508,7 +1557,7 @@ const submitResource = () => {
             else if(['pdf'].includes(ext)) type = 'pdf'
             else if(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) type = 'office'
             else if(['txt'].includes(ext)) type = 'text'
-            
+
             resourceForm.value.type = type
 
             if(resourceForm.value.resourceId) {
@@ -1784,7 +1833,7 @@ const findScrollableChild = (el, depth = 0) => {
     const style = window.getComputedStyle(child)
     const isScrollable = (style.overflowY === 'auto' || style.overflowY === 'scroll') && child.scrollHeight > child.clientHeight
     if (isScrollable) return child
-    
+
     // 递归查找
     const found = findScrollableChild(child, depth + 1)
     if (found) return found
@@ -1825,7 +1874,7 @@ const getFullUrl = (url) => {
 // 获取预览专用的 URL (支持内网穿透)
 const getPreviewUrl = (url) => {
   let fullUrl = getFullUrl(url)
-  
+
   // 如果配置了公网预览地址 (VITE_APP_PREVIEW_DOMAIN)，则替换
   const previewDomain = import.meta.env.VITE_APP_PREVIEW_DOMAIN
   if (previewDomain && fullUrl.startsWith('/')) {
@@ -1842,17 +1891,17 @@ const getPreviewUrl = (url) => {
          return previewDomain.replace(/\/$/, '') + fullUrl
      }
   }
-  
+
   // 降级策略：如果是本地开发环境，尝试提示用户
   if (isLocalEnv.value && !previewDomain) {
       console.warn('当前为本地环境，Office 预览需要配置 VITE_APP_PREVIEW_DOMAIN 为公网地址 (如 ngrok)')
   }
-  
+
   // 默认补全当前域名
   if (fullUrl.startsWith('/')) {
       return window.location.origin + fullUrl
   }
-  
+
   return fullUrl
 }
 
@@ -1880,7 +1929,7 @@ const allowDrop = (draggingNode, dropNode, type) => {
 const handleNodeDrop = (draggingNode, dropNode, dropType, ev) => {
   const draggedData = draggingNode.data
   const dropData = dropNode.data
-  
+
   // Calculate new parent
   let newParentId = 0
   if (dropType === 'inner') {
@@ -1893,10 +1942,10 @@ const handleNodeDrop = (draggingNode, dropNode, dropType, ev) => {
         newParentId = dropData.raw.chapterId // if sibling of resource, parent is resource's chapter
     }
   }
-  
+
   // Get siblings to update sort order
   const siblings = (dropType === 'inner') ? (dropData.children || []) : dropNode.parent.childNodes.map(n => n.data)
-  
+
   // Update sort for all siblings
   const promises = []
   siblings.forEach((node, index) => {
@@ -1916,7 +1965,7 @@ const handleNodeDrop = (draggingNode, dropNode, dropType, ev) => {
       }
       if(p) promises.push(p)
   })
-  
+
   Promise.all(promises).then(() => {
       ElMessage.success('排序更新成功')
       getChapterList() // Refresh to ensure consistency
@@ -2081,7 +2130,7 @@ const teacherComment = ref("");
 function handleGrade(row) {
   currentRecordId.value = row.id;
   teacherComment.value = row.teacherComment || "";
-  
+
   // 加载答题详情
   getRecordDetail(row.id).then(res => {
     studentAnswerList.value = res.data;
@@ -2159,14 +2208,14 @@ function handleEditExam(exam) {
 
   getExam(exam.id).then(res => {
     examForm.value = res.data;
-    
+
     // 确保题目列表是数组，防止报错
     if (!examForm.value.questionList) {
       examForm.value.questionList = [];
     }
-    
+
     // 打开弹窗
-    examDialogOpen.value = true; 
+    examDialogOpen.value = true;
   }).catch(err => {
     console.error("获取详情失败:", err);
     ElMessage.error("无法获取试卷详情，请检查后端");
@@ -2202,7 +2251,7 @@ function confirmAddQuestions() {
       questionId: q.id, // 关联ID
       score: 5 // 默认分值
     }));
-  
+
   examForm.value.questionList.push(...newQuestions);
   bankDialogOpen.value = false;
   selectedBankQuestions.value = [];
@@ -2292,7 +2341,7 @@ function getExamStatusTag(exam) {
 
 function canStartExam(exam) {
   if (exam.status !== '1') return false;
-  
+
   // 检查是否已截止
   if (exam.endTime) {
     const now = new Date();
@@ -2319,7 +2368,7 @@ function getStudentExamBtnText(exam) {
 
 // 删除考试按钮操作
 function handleDeleteExam(row) {
-  const examIds = row.id; 
+  const examIds = row.id;
   ElMessageBox.confirm('是否确认删除考试编号为"' + examIds + '"的数据项？', "系统提示", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
@@ -2378,7 +2427,8 @@ const menuItems = computed(() => {
     { key: 'resources', label: '教学资源', icon: FolderOpened },
     { key: 'homework', label: '作业', icon: EditPen },
     { key: 'experiment', label: '实验', icon: Cpu },
-    { key: 'exam', label: '考试', icon: Monitor }
+    { key: 'exam', label: '考试', icon: Monitor },
+    { key: 'knowledge', label: '知识图谱', icon: Share }
   ]
   if (isTeacher.value) {
     items.push({ key: 'members', label: '人员管理', icon: User })
@@ -2418,10 +2468,15 @@ onMounted(() => {
 const getCourseInfo = () => {
   getCourse(courseId).then(res => {
     course.value = res.data || {}
+    courseData.value=course.value //知识图谱
     const teachers = res.teachers || []
     const userId = userStore.id
     isTeacher.value = teachers.some(t => String(t.userId) === String(userId)) || (userStore.roles && userStore.roles.includes('admin'))
     
+    if (isTeacher.value) {
+      loadApplicants()
+    }
+
     if (activeMenu.value === 'announcement') {
         loadNotices()
     }
@@ -2446,12 +2501,12 @@ const buildTreeData = () => {
                 raw: c,
                 children: []
             }
-            
+
             // Add sub-chapters
             if (c.children && c.children.length > 0) {
                 node.children.push(...process(c.children))
             }
-            
+
             // Add resources
             if (c.resources && c.resources.length > 0) {
                 const resourceNodes = c.resources.map(v => ({
@@ -2462,7 +2517,7 @@ const buildTreeData = () => {
                 }))
                 node.children.push(...resourceNodes)
             }
-            
+
             return node
         })
     }
@@ -2590,6 +2645,29 @@ const submitAddStudents = () => {
   }
 }
 
+const openApprovalDialog = () => {
+  approvalOpen.value = true
+  loadApplicants()
+}
+
+const loadApplicants = () => {
+  getApplicants(courseId).then(res => {
+    applicants.value = res.rows || []
+  })
+}
+
+const handleApprove = (row, status) => {
+  approveJoin({
+    courseId: courseId,
+    studentId: row.studentId,
+    status: status
+  }).then(() => {
+    ElMessage.success('操作成功')
+    loadApplicants()
+    loadStudents() // Refresh student list if approved
+  })
+}
+
 const loadHomeworks = () => {
   listHomework({ courseId: courseId }).then(res => {
     homeworkList.value = res.rows || []
@@ -2634,7 +2712,7 @@ const getSubmissionGrade = (hw) => {
 }
 
 const openHomeworkDialog = () => {
-  homeworkForm.value = { 
+  homeworkForm.value = {
     courseId: courseId,
     status: '0',
     startTime: null,
@@ -2737,7 +2815,7 @@ const openSubmitDialog = (hw) => {
         if (sub.imageUrl) {
             combinedUrl = combinedUrl ? (combinedUrl + ',' + sub.imageUrl) : sub.imageUrl
         }
-        
+
         submitForm.value = {
             id: sub.id,
             homeworkId: hw.id,
@@ -2791,7 +2869,8 @@ const openEditCourseDialog = () => {
     courseDesc: course.value.courseDesc,
     lessonHours: course.value.lessonHours,
     status: course.value.status,
-    courseImg: course.value.courseImg
+    courseImg: course.value.courseImg,
+    approvalRequired: course.value.approvalRequired
   }
   editCourseOpen.value = true
 }
@@ -2872,6 +2951,26 @@ const getFileName = (url) => {
 </script>
 
 <style scoped lang="scss">
+.approval-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.setting-label {
+  font-size: 14px;
+  color: #606266;
+  margin-right: 10px;
+}
+
+.setting-tip {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.5;
+  margin-top: 5px;
+}
+
 // ... (previous styles)
 
 // Search Results Styles
@@ -3039,7 +3138,7 @@ const getFileName = (url) => {
     background: #f5f7fa;
     padding: 2px 6px;
     border-radius: 4px;
-    
+
   }
   
   .user-cell {
@@ -3162,7 +3261,7 @@ const getFileName = (url) => {
       color: #606266;
       font-size: 14px;
       transition: color 0.3s;
-      
+
       &:hover {
         color: #409EFF;
       }
@@ -3430,20 +3529,20 @@ const getFileName = (url) => {
     display: flex;
     align-items: center;
   }
-  
+
   .detail-content {
     .label {
       font-weight: bold;
       margin-bottom: 8px;
     }
-    
+
     .content-box {
       background: #f9fafc;
       padding: 15px;
       border-radius: 4px;
       border: 1px solid #e4e7ed;
       line-height: 1.6;
-      
+
       /* Limit image size */
       :deep(img) {
         max-width: 100%;
@@ -3460,7 +3559,7 @@ const getFileName = (url) => {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  
+
   .homework-item {
       background: #fff;
       border: 1px solid #ebeef5;
@@ -3471,7 +3570,7 @@ const getFileName = (url) => {
       transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
       position: relative;
-      
+
       &:hover {
         transform: translateY(-2px);
         box-shadow: 0 8px 20px rgba(0,0,0,0.08);
@@ -3481,25 +3580,25 @@ const getFileName = (url) => {
       &.status-0 .homework-left-border { background: #909399; } /* Draft */
       &.status-1 .homework-left-border { background: #409EFF; } /* Published */
       &.status-2 .homework-left-border { background: #F56C6C; } /* Closed */
-      
+
       .homework-left-border {
           width: 4px;
           background: #dcdfe6;
       }
-      
+
       .homework-main {
         flex: 1;
         padding: 20px 0 20px 20px;
         margin-right: 20px;
         display: flex;
         flex-direction: column;
-        
+
         .homework-header {
             display: flex;
             align-items: center;
             gap: 12px;
             margin-bottom: 12px;
-            
+
             .homework-title {
               font-size: 18px;
               font-weight: 600;
@@ -3507,13 +3606,13 @@ const getFileName = (url) => {
               margin: 0;
             }
         }
-        
+
         .homework-meta {
             display: flex;
             gap: 16px;
             margin-bottom: 16px;
             flex-wrap: wrap;
-            
+
             .meta-item {
                 display: flex;
                 align-items: center;
@@ -3523,14 +3622,14 @@ const getFileName = (url) => {
                 background: #f4f4f5;
                 padding: 4px 10px;
                 border-radius: 4px;
-                
+
                 &.deadline {
                     color: #e6a23c;
                     background: #fdf6ec;
                 }
             }
         }
-        
+
         .homework-content-preview {
           color: #606266;
           font-size: 14px;
@@ -3543,7 +3642,7 @@ const getFileName = (url) => {
           -webkit-box-orient: vertical;
         }
       }
-      
+
       .homework-right {
          padding: 20px;
          display: flex;
@@ -3553,22 +3652,22 @@ const getFileName = (url) => {
          border-left: 1px solid #f2f6fc;
          min-width: 200px;
          background: #fafafa;
-         
+
          .action-buttons {
              display: flex;
              gap: 8px;
          }
-         
+
          .student-status-area {
              margin-bottom: 15px;
              text-align: right;
-             
+
              .status-indicator {
                  display: flex;
                  align-items: center;
                  justify-content: flex-end;
                  gap: 8px;
-                 
+
                  &.submitted {
                      .status-icon {
                          color: #67c23a;
@@ -3588,7 +3687,7 @@ const getFileName = (url) => {
                              }
                      }
                  }
-                 
+
                  &.not-submitted {
                      .status-dot {
                          width: 8px;
@@ -3605,11 +3704,11 @@ const getFileName = (url) => {
          }
       }
     }
-    
+
     /* View Submission Dialog Styles */
     .score-card {
         padding: 0 10px;
-        
+
         .score-header {
             display: flex;
             justify-content: space-between;
@@ -3618,29 +3717,29 @@ const getFileName = (url) => {
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
-            
+
             &.is-graded {
                 background: linear-gradient(135deg, #f0f9eb 0%, #e1f3d8 100%);
-                
+
                 .score-value { color: #67c23a; }
             }
-            
+
             .score-main {
                 display: flex;
                 flex-direction: column;
-                
+
                 .label {
                     font-size: 13px;
                     color: #909399;
                     margin-bottom: 4px;
                 }
-                
+
                 .score-value {
                     font-size: 36px;
                     font-weight: bold;
                     color: #303133;
                     line-height: 1;
-                    
+
                     .suffix {
                         font-size: 16px;
                         font-weight: normal;
@@ -3650,24 +3749,24 @@ const getFileName = (url) => {
                 }
             }
         }
-        
+
         .submission-info {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
             margin-bottom: 15px;
-            
+
             .info-row {
                 font-size: 13px;
                 color: #606266;
-                
+
                 .label { color: #909399; }
             }
         }
-        
+
         .content-section {
             margin-top: 20px;
-            
+
             .section-title {
                 font-size: 15px;
                 font-weight: bold;
@@ -3676,13 +3775,13 @@ const getFileName = (url) => {
                 border-left: 3px solid #409EFF;
                 padding-left: 10px;
             }
-            
+
             .content-box {
                 background: #f9fafc;
                 padding: 15px;
                 border-radius: 4px;
                 border: 1px solid #e4e7ed;
-                
+
                 .text-content {
                     white-space: pre-wrap;
                     color: #606266;
@@ -3691,10 +3790,10 @@ const getFileName = (url) => {
                     margin-bottom: 10px;
                 }
             }
-            
+
             &.feedback-section {
                 .section-title { border-color: #67c23a; }
-                
+
                 .feedback-box {
                     background: #f0f9eb;
                     border-color: #e1f3d8;
@@ -3715,14 +3814,14 @@ const getFileName = (url) => {
   border-top: 1px solid #ebeef5;
   border-bottom: 1px solid #ebeef5;
   margin: -20px -20px 0; /* Negate dialog padding */
-  
+
   .publish-left {
     flex: 1;
     width: 50%;
     min-width: 0; /* Prevent flex item from expanding due to content */
     padding: 20px;
     overflow-y: auto;
-    
+
     .editor-item {
       margin-bottom: 0;
       :deep(.el-form-item__content) {
@@ -3730,7 +3829,7 @@ const getFileName = (url) => {
       }
     }
   }
-  
+
   .publish-right {
     flex: 1;
     width: 50%;
@@ -3739,7 +3838,7 @@ const getFileName = (url) => {
     border-left: 1px solid #e4e7ed;
     display: flex;
     flex-direction: column;
-    
+
     .preview-header {
       padding: 10px 20px;
       border-bottom: 1px solid #ebeef5;
@@ -3747,19 +3846,19 @@ const getFileName = (url) => {
       justify-content: space-between;
       align-items: center;
       background: #fff;
-      
+
       .preview-label {
         font-weight: bold;
         color: #303133;
         font-size: 14px;
       }
     }
-    
+
     .content-preview-box {
       flex: 1;
       padding: 30px;
       overflow-y: auto;
-      
+
       .preview-title {
         font-size: 22px;
         font-weight: bold;
@@ -3767,7 +3866,7 @@ const getFileName = (url) => {
         margin-bottom: 10px;
         text-align: center;
       }
-      
+
       .preview-meta {
         display: flex;
         justify-content: center;
@@ -3777,33 +3876,33 @@ const getFileName = (url) => {
         font-size: 13px;
         border-bottom: 1px dashed #ebeef5;
         padding-bottom: 15px;
-        
+
         .meta-item {
           display: flex;
           align-items: center;
           gap: 5px;
-          
+
           &.deadline { color: #e6a23c; }
         }
       }
-      
+
       .preview-body {
         font-size: 15px;
         line-height: 1.8;
         color: #333;
-        
+
         /* Mimic Quill editor output styles */
         p { margin-bottom: 1em; }
-        :deep(img) { 
-          max-width: 80%; 
-          max-height: 400px; 
-          height: auto; 
-          display: block; 
-          margin: 10px auto; 
+        :deep(img) {
+          max-width: 80%;
+          max-height: 400px;
+          height: auto;
+          display: block;
+          margin: 10px auto;
           border-radius: 4px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        
+
         .placeholder {
           color: #ccc;
           text-align: center;
@@ -3832,7 +3931,7 @@ const getFileName = (url) => {
   box-shadow: inset 0 0 20px rgba(0,0,0,0.02);
   overflow: hidden;
   position: relative;
-  
+
   &.is-video {
     background: #000;
   }
@@ -3843,12 +3942,12 @@ const getFileName = (url) => {
     background: #fff;
     box-shadow: 0 4px 16px rgba(0,0,0,0.05);
   }
-  
+
   .preview-scroller {
     width: 100%;
     height: 100%;
     overflow-y: auto;
-    
+
     &::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -3861,7 +3960,7 @@ const getFileName = (url) => {
       background: transparent;
     }
   }
-  
+
   /* Center content in scroller for video/default */
   &:not(.is-office) .preview-scroller {
       display: flex;
@@ -3874,12 +3973,12 @@ const getFileName = (url) => {
     bottom: 40px;
     right: 40px;
     z-index: 100;
-    
+
     .pagination-wrapper {
       display: flex;
       flex-direction: column;
       gap: 15px;
-      
+
       .el-button {
         margin: 0;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -3889,13 +3988,13 @@ const getFileName = (url) => {
         width: 48px;
         height: 48px;
         transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        
+
         &:hover {
           background-color: rgba(64, 158, 255, 1);
           transform: scale(1.1);
           box-shadow: 0 8px 20px rgba(64, 158, 255, 0.3);
         }
-        
+
         &:active {
           transform: scale(0.95);
         }

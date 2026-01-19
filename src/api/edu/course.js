@@ -81,3 +81,11 @@ export function importCourseStudents(courseId, file) {
   formData.append('file', file)
   return request({ url: `/edu/course/${courseId}/students/import`, method: 'post', data: formData })
 }
+
+export function approveJoin(data) {
+  return request({ url: '/edu/course/approve', method: 'post', data })
+}
+
+export function getApplicants(courseId) {
+  return request({ url: `/edu/course/${courseId}/applicants`, method: 'get' })
+}

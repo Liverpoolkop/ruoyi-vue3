@@ -251,6 +251,20 @@ function getCode() {
     }
   });
 }
+// function getCode() {
+//   getCodeImg().then(res => {
+//     console.log("res2: ", res)
+//     captchaEnabled.value = res.captchaEnabled === undefined ? true : res.captchaEnabled;
+//     if (res.registerEnabled !== undefined) {
+//       register.value = res.registerEnabled;
+//     }
+//     if (captchaEnabled.value) {
+//       codeUrl.value = "data:image/gif;base64," + res.img;
+//       console.log(res);
+//       loginForm.value.uuid = res.uuid;
+//     }
+//   });
+// }
 
 function getCookie() {
   const username = Cookies.get("username");

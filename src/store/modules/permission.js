@@ -55,9 +55,18 @@ const usePermissionStore = defineStore(
     }
   })
 
-// 遍历后台传来的路由字符串，转换为组件对象
+const HIDE_COMPONENTS = ['system/dept/index', 'system/post/index']
+const HIDE_PATHS = ['system/dept', 'system/post', '/system/dept', '/system/post']
+const HIDE_TITLES = ['教育平台']
+
 function filterAsyncRouter(asyncRouterMap, lastRouter = false, type = false) {
   return asyncRouterMap.filter(route => {
+    if (HIDE_PATHS.includes(route.path) || HIDE_COMPONENTS.includes(route.component)) {
+      return false
+    }
+    if ((route.meta && HIDE_TITLES.includes(route.meta.title)) || (route.path && route.path.includes('ruoyi.vip'))) {
+      return false
+    }
     if (type && route.children) {
       route.children = filterChildren(route.children)
     }
@@ -123,6 +132,8 @@ export function filterDynamicRoutes(routes) {
       if (auth.hasRoleOr(route.roles)) {
         res.push(route)
       }
+    } else {
+      res.push(route)
     }
   })
   return res

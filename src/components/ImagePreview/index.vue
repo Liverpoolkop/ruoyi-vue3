@@ -37,7 +37,7 @@ const realSrc = computed(() => {
     return;
   }
   let real_src = props.src.split(",")[0];
-  if (isExternal(real_src)) {
+  if (isExternal(real_src) || real_src.startsWith("http")) {
     return real_src;
   }
   return import.meta.env.VITE_APP_BASE_API + real_src;
@@ -50,7 +50,7 @@ const realSrcList = computed(() => {
   let real_src_list = props.src.split(",");
   let srcList = [];
   real_src_list.forEach(item => {
-    if (isExternal(item)) {
+    if (isExternal(item) || item.startsWith("http")) {
       return srcList.push(item);
     }
     return srcList.push(import.meta.env.VITE_APP_BASE_API + item);

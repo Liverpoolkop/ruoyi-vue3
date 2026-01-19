@@ -87,7 +87,7 @@ const options = ref({
       [{ color: [] }, { background: [] }],            // 字体颜色、字体背景颜色
       [{ align: [] }],                                // 对齐方式
       ["clean"],                                      // 清除文本格式
-      ["link", "image", "video"]                      // 链接、图片、视频
+      ["link", "image"]                               // 链接、图片
     ],
   },
   placeholder: "请输入内容",
@@ -156,9 +156,11 @@ function handleUploadSuccess(res, file) {
     // 获取光标位置
     let length = quill.selection.savedRange.index;
     // 插入图片，res.url为服务器返回的图片链接地址
-    quill.insertEmbed(length, "image", import.meta.env.VITE_APP_BASE_API + res.fileName);
-    // 调整光标到最后
-    quill.setSelection(length + 1);
+    if (res.url) {
+        quill.insertEmbed(length, "image", res.url.trim());
+        // 调整光标到最后
+        quill.setSelection(length + 1);
+    }
   } else {
     proxy.$modal.msgError("图片插入失败");
   }

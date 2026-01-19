@@ -46,12 +46,12 @@
           <el-table :data="students" height="600" style="width: 100%" :header-cell-style="{background:'#f5f7fa'}">
             <el-table-column prop="studentId" label="学号" width="150" align="center">
               <template #default="scope">
-                <el-tag type="info" size="small">{{ scope.row.studentId }}</el-tag>
+                <el-tag type="info" size="small">{{ scope.row.studentName }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="studentName" label="姓名" min-width="160" align="center">
               <template #default="scope">
-                <span class="student-name">{{ scope.row.studentName }}</span>
+                <span class="student-name">{{ scope.row.nickName || scope.row.studentName }}</span>
               </template>
             </el-table-column>
             <el-table-column label="操作" width="120" align="center" v-if="canManage">
@@ -112,7 +112,7 @@
             </div>
           </template>
           <div class="teacher-profile">
-            <el-avatar :size="60" src="" class="mb-2">
+            <el-avatar :size="60" :src="info.avatar ? (info.avatar.startsWith('http') ? info.avatar : baseUrl + info.avatar) : ''" class="mb-2">
               {{ info.nickName ? info.nickName.substring(0, 1) : '师' }}
             </el-avatar>
             <div class="name">{{ info.nickName }}</div>
@@ -251,11 +251,13 @@ import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, User, UserFilled, School, Collection, Plus, Upload, Delete, Key, Search, Close } from '@element-plus/icons-vue'
 import { getClass, inviteClass, batchAddStudents, removeStudent, getUserBrief } from '@/api/edu/class'
+import { getUser } from '@/api/system/user'
 import { getToken } from '@/utils/auth'
 import auth from '@/plugins/auth'
 
 const { proxy } = getCurrentInstance()
 const route = useRoute()
+const baseUrl = import.meta.env.VITE_APP_BASE_API
 const info = ref({})
 const students = ref([])
 const studentAddOpen = ref(false)
@@ -359,7 +361,29 @@ function reload(){
   const id = Number(route.params.id)
   getClass(id).then(res => { 
     info.value = res.data || {}
-    students.value = res.students || []
+    
+    // Fetch teacher avatar using public search API
+    if (info.value.teacherName) {
+      getUserBrief(info.value.teacherName).then(uRes => {
+        const users = uRes.data || []
+        const teacher = users.find(u => u.userName === info.value.teacherName)
+        if (teacher) {
+          info.value.avatar = teacher.avatar
+        }
+      })
+    }
+
+    const list = res.students || []
+    students.value = list
+    
+    // Fetch nicknames
+    list.forEach(student => {
+      getUser(student.studentId).then(uRes => {
+        if (uRes.data) {
+          student.nickName = uRes.data.nickName
+        }
+      })
+    })
   }) 
 }
 

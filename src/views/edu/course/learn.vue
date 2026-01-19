@@ -444,7 +444,7 @@
           <div class="content-header">
             <h2>图谱管理</h2>
           </div>
-          <Knowledge :courseData="courseData"></Knowledge>
+          <Knowledge :courseData="course.value"></Knowledge>
         </div>
 
 

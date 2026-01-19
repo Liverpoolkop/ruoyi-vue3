@@ -86,6 +86,7 @@ export const constantRoutes = [
     path: '',
     component: Layout,
     redirect: '/portal',
+    hidden: true,
     children: [
       {
         path: '/index',

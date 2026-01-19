@@ -94,6 +94,7 @@
 <script setup>
 import { getToken } from '@/utils/auth'
 import { ref } from 'vue'
+import { ElMessageBox, ElMessage } from 'element-plus'
 import { Bell, CaretBottom } from '@element-plus/icons-vue'
 import { joinByInvite } from '@/api/edu/invite'
 import { getUnreadCount, listMessage, readMessage } from '@/api/edu/message'

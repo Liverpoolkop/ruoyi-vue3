@@ -34,7 +34,12 @@
     "vue": "3.4.0",
     "vue-cropper": "1.1.1",
     "vue-router": "4.2.5",
-    "vuedraggable": "^4.1.0"
+    "vuedraggable": "^4.1.0",
+    "@vue-office/docx": "^1.6.0",
+    "@vue-office/excel": "^1.6.0",
+    "@vue-office/pdf": "^1.6.0",
+    "@vue-office/pptx": "^1.0.1",
+    "vue-demi": "^0.14.6"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "5.0.1",

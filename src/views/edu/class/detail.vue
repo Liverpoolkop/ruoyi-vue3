@@ -51,7 +51,7 @@
             </el-table-column>
             <el-table-column prop="studentName" label="姓名" min-width="160" align="center">
               <template #default="scope">
-                <span class="student-name">{{ scope.row.studentName }}</span>
+                <span class="student-name">{{ scope.row.nickName || scope.row.studentName }}</span>
               </template>
             </el-table-column>
             <el-table-column label="操作" width="120" align="center" v-if="canManage">

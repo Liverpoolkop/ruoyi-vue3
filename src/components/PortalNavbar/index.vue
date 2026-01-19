@@ -54,7 +54,7 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item @click="router.push('/portal/profile')">个人信息</el-dropdown-item>
-                <el-dropdown-item v-if="isAdmin" @click="router.push('/index')">进入后台</el-dropdown-item>
+                <el-dropdown-item v-if="isAdmin" @click="handleGoAdmin">进入后台</el-dropdown-item>
                 <el-dropdown-item divided @click="handleLogout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -159,6 +159,11 @@ const userAvatar = computed(() => {
 const isAdmin = computed(() => {
   return userStore.roles && userStore.roles.includes('admin')
 })
+
+function handleGoAdmin() {
+  // 修改此处路径可改变后台入口跳转目标
+  router.push('/index')
+}
 
 function handleLogout() {
   ElMessageBox.confirm('确定注销并退出系统吗？', '提示', {

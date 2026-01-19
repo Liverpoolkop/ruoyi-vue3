@@ -86,6 +86,7 @@ export const constantRoutes = [
     path: '',
     component: Layout,
     redirect: '/portal',
+    hidden: true,
     children: [
       {
         path: '/index',
@@ -141,6 +142,11 @@ export const constantRoutes = [
   {
     path: '/edu/experiment/coding/:id(\\d+)',
     component: () => import('@/views/edu/experiment/coding'),
+    hidden: true
+  },
+  {
+    path: '/edu/exam/taking/:examId(\\d+)',
+    component: () => import('@/views/edu/exam/taking'),
     hidden: true
   },
   {

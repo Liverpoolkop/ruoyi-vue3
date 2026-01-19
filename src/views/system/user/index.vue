@@ -161,7 +161,7 @@
                      <el-input v-model="form.nickName" placeholder="请输入用户昵称" maxlength="30" />
                   </el-form-item>
                </el-col>
-               
+
             </el-row>
             <el-row>
                <el-col :span="12">
@@ -213,7 +213,7 @@
                </el-col>
             </el-row>
             <el-row>
-               
+
                <el-col :span="12">
                   <el-form-item label="角色">
                      <el-select v-model="form.roleIds" multiple placeholder="请选择">
@@ -375,7 +375,7 @@ function handleQuery() {
 function resetQuery() {
   dateRange.value = [];
   proxy.resetForm("queryRef");
-  
+
   handleQuery();
 };
 /** 删除按钮操作 */

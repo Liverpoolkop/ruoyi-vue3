@@ -18,7 +18,7 @@
         <p>
           <b>当前版本:</b> <span>v{{ version }}</span>
         </p>
-        
+
       </el-col>
     </el-row>
     <el-divider />

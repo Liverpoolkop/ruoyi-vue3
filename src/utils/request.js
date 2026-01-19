@@ -87,7 +87,7 @@ service.interceptors.response.use(res => {
         const publicPaths = ['/portal', '/index', '/system/course/index']
         const currentPath = location.pathname
         const isPublicPage = publicPaths.some(path => currentPath.startsWith(path))
-        
+
         if (isPublicPage) {
            // 清除过期的 token
            useUserStore().logOut().catch(() => {})

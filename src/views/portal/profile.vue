@@ -9,7 +9,7 @@
             <div class="avatar-wrapper">
               <userAvatar />
             </div>
-            <div class="user-name">{{ userStore.nickname || userStore.name }}</div>
+            <div class="user-name">{{ userStore.nickName || userStore.name }}</div>
             <div class="user-role">{{ userRole }}</div>
           </div>
           
@@ -83,14 +83,6 @@
             >
               <el-icon><Message /></el-icon>
               <span>站内信</span>
-            </div>
-            <div 
-              class="menu-item" 
-              :class="{ active: activeTab === 'exams' }"
-              @click="handleTabClick('exams')"
-            >
-              <el-icon><Timer /></el-icon>
-              <span>在线测验</span>
             </div>
           </div>
         </div>
@@ -382,7 +374,6 @@ const currentTabLabel = computed(() => {
     'joined_classes': '我加入的班级',
     'question_bank': '题库管理',
     'messages': '站内信',
-    'exams': '在线测验'
   }
   return map[activeTab.value] || ''
 })

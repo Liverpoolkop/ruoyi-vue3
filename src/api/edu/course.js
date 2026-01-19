@@ -60,8 +60,8 @@ export function delCourseNotice(courseId, noticeId) {
   return request({ url: `/edu/course/${courseId}/notice/${noticeId}`, method: 'delete' })
 }
 
-export function getCourseStudents(courseId) {
-  return request({ url: `/edu/course/${courseId}/students`, method: 'get' })
+export function getCourseStudents(courseId, query) {
+  return request({ url: `/edu/course/${courseId}/students`, method: 'get', params: query })
 }
 
 export function addCourseStudents(courseId, studentIds) {
